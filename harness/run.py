@@ -31,6 +31,7 @@ arm, a user skill, MCP server, plugin or undeclared hook loaded, a --token-file
 run was billed to an API key, or the run ended in an error.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -168,9 +169,14 @@ def harness_version():
     try:
         rev = subprocess.run(g + ["rev-parse", "--short", "HEAD"], capture_output=True,
                              text=True, check=True).stdout.strip()
-        dirty = subprocess.run(g + ["status", "--porcelain", "--", "."], capture_output=True,
-                               text=True).stdout.strip()
-        return rev + ("+changes" if dirty else "")
+        diff = subprocess.run(g + ["diff", "HEAD", "--", "."], capture_output=True,
+                              text=True).stdout
+        new = subprocess.run(g + ["ls-files", "--others", "--exclude-standard", "--", "."],
+                             capture_output=True, text=True).stdout
+        if not (diff or new):
+            return rev
+        # uncommitted changes: name them by a hash, so two different states differ
+        return rev + "+changes-" + hashlib.sha256((diff + new).encode()).hexdigest()[:8]
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
 
