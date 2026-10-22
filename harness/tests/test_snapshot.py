@@ -136,3 +136,34 @@ def test_catch_all_tail(tmp_path):
     os.chmod(bad, 0o555)
     r = run(home, "--src", src, "--verify", str(bad))
     assert r.returncode == 1 and "path to the source (/projects/demo.proj): a.md" in r.stdout
+
+
+def test_swap_between_select_and_copy(tmp_path, monkeypatch):
+    """A picked file replaced by a link to the secret before it is read is refused."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("snapshot", SNAPSHOT)
+    snap = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(snap)
+    home = str(tmp_path / "home")
+    src = make_project(home)
+    real_select = snap.select
+
+    def select_then_swap(*a):
+        picked, skipped = real_select(*a)
+        os.remove(f"{src}/CLAUDE.md")
+        os.symlink(f"{src}/.credentials.env", f"{src}/CLAUDE.md")
+        return picked, skipped
+
+    monkeypatch.setattr(snap, "select", select_then_swap)
+    monkeypatch.setenv("HOME", home)
+    dest = str(tmp_path / "snap")
+    monkeypatch.setattr(sys, "argv", ["snapshot.py", "--src", src, "--dest", dest])
+    try:
+        snap.main()
+        raised = None
+    except (SystemExit, OSError) as e:
+        raised = e
+    assert raised is not None
+    for d, _, fs in os.walk(dest):
+        for f in fs:
+            assert "never-copied" not in open(os.path.join(d, f)).read()

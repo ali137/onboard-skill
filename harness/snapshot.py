@@ -24,7 +24,8 @@ import pwd
 import stat
 import sys
 
-SECRET = [".credentials*", ".env", ".env.*", "*.env", "*.pem", "*.key", "id_rsa*", ".netrc"]
+SECRET = [".credentials*", ".env", ".env.*", "*.env", "*.pem", "*.key", "*.p12", "*.pfx", "id_rsa*",
+          "id_ed25519*", "id_ecdsa*", ".netrc", ".npmrc", ".pgpass", "credentials.json", ".secrets"]
 SKIP_DIRS = {".git", "node_modules"}
 IMAGES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg", ".ico", ".bmp", ".tif", ".tiff",
           ".heic", ".psd"}
@@ -58,7 +59,7 @@ def select(src, trees, md_trees, files):
     """Relative paths to copy, and what was skipped. Opens nothing."""
     picked, skipped = [], {"secret": [], "symlink": [], "missing": [], "not a regular file": [],
                            "image": [], "hardlink to a secret": []}
-    secret_inodes = set()
+    secret_inodes, unreadable = set(), []
 
     def take(p, rel, name):
         st = os.lstat(p)
@@ -82,7 +83,7 @@ def select(src, trees, md_trees, files):
         if os.path.islink(root) or not os.path.isdir(root):
             skipped["symlink" if os.path.islink(root) else "missing"].append(top)
             continue
-        for d, dirs, fs in os.walk(root):
+        for d, dirs, fs in os.walk(root, onerror=lambda e: unreadable.append(e.filename)):
             keep = []
             for x in sorted(dirs):
                 rel = os.path.relpath(os.path.join(d, x), src)
@@ -96,9 +97,13 @@ def select(src, trees, md_trees, files):
             for f in sorted(fs):
                 if is_secret(f) or not md_only or f.endswith(".md"):
                     take(os.path.join(d, f), os.path.relpath(os.path.join(d, f), src), f)
+    skipped["unreadable"] = [os.path.relpath(u, src) for u in unreadable]
     kept = []
     for rel, inode in picked:  # a hard link shares the secret's contents under another name
-        (skipped["hardlink to a secret"] if inode in secret_inodes else kept).append(rel)
+        if inode in secret_inodes:
+            skipped["hardlink to a secret"].append(rel)
+        else:
+            kept.append((rel, inode))
     return kept, skipped
 
 
@@ -173,8 +178,15 @@ def main():
     skipped["binary"], rewritten = [], {}
 
     os.makedirs(dest)
-    for rel in picked:
-        data = open(os.path.join(src, rel), "rb").read()
+    for rel, inode in picked:
+        # open without following links, and only the very file select() vetted:
+        # a live project could swap in a link to a secret between the two steps
+        fd = os.open(os.path.join(src, rel), os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(fd, "rb") as f:
+            st = os.fstat(f.fileno())
+            if (st.st_dev, st.st_ino) != inode or not stat.S_ISREG(st.st_mode):
+                sys.exit(f"snapshot: {rel} changed during the copy; nothing more copied")
+            data = f.read()
         try:
             text = data.decode("utf-8")
         except UnicodeDecodeError:
@@ -198,11 +210,12 @@ def main():
     problems = verify(dest, srcs, read_only=False)
     problems += [f"folder not copied ({why}): {t}" for why in ("missing", "symlink")
                  for t in skipped[why] if t in trees + md_trees]
+    problems += [f"folder not readable: {u}" for u in skipped["unreadable"]]
     if not problems:
         make_read_only(dest)
         problems = verify(dest, srcs, read_only=True)
     copied = len(picked) - len(skipped["binary"])
-    root_md = sum(1 for r in picked if "/" not in r and r.endswith(".md"))
+    root_md = sum(1 for r, _ in picked if "/" not in r and r.endswith(".md"))
     manifest = {
         "src": src, "dest": dest, "root_md_files": root_md, "files_copied": copied,
         "files_rewritten": len(rewritten), "paths_rewritten": sum(rewritten.values()),
