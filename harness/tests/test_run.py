@@ -79,8 +79,7 @@ def test_with_arm(tmp_path):
     assert "| active | |" in open(snap / "PHASES.md").read()  # the snapshot is untouched
     assert open(work / "CLAUDE.md").read() == f"Rules for {work}.\n"
     assert str(work) in open(work / ".claude/settings.json").read()
-    assert subprocess.run(["git", "-C", str(work), "status", "--porcelain"],
-                          capture_output=True, text=True).stdout == ""
+    assert not os.path.exists(work / ".git")  # the source has no git, so neither does the copy
 
     args = json.load(open(tmp_path / "args.json"))
     assert args["cwd"] == str(work) and args["stdin"] == "hello"

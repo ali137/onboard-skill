@@ -11,7 +11,7 @@ Builds <out>/work, a writable copy of --src:
   - --plant applies planted claims (JSON: one {"file", "find", "replace"} or a
     list; each "find" must occur exactly once), in the copy only;
   - the "with" arm gets the skill in .claude/skills/<name>/;
-  - git: a fresh repository with one commit, or with --keep-git the source's
+  - git: none, like a source without git; with --keep-git, the source's
     history plus one commit holding the changes above.
 <out>/cfg is a fresh CLAUDE_CONFIG_DIR. <out>/run-settings.json is
 --base-settings (deny rules, guard hooks) plus claudeMdExcludes for every
@@ -163,12 +163,13 @@ def main():
     if a.arm == "with":
         shutil.copytree(a.skill, f"{work}/.claude/skills/{skill_name}")
 
-    git = ["git", "-C", work, "-c", "user.name=lab", "-c", "user.email=lab@localhost"]
-    if not (a.keep_git and os.path.isdir(f"{work}/.git")):
-        subprocess.run(git + ["init", "-q", "-b", "main"], check=True)
-    subprocess.run(git + ["add", "-A"], check=True)
-    if subprocess.run(git + ["diff", "--cached", "--quiet"]).returncode:
-        subprocess.run(git + ["commit", "-q", "-m", "lab copy"], check=True)
+    if a.keep_git:
+        if not os.path.isdir(f"{work}/.git"):
+            sys.exit("run: --keep-git, but the source has no .git")
+        git = ["git", "-C", work, "-c", "user.name=lab", "-c", "user.email=lab@localhost"]
+        subprocess.run(git + ["add", "-A"], check=True)
+        if subprocess.run(git + ["diff", "--cached", "--quiet"]).returncode:
+            subprocess.run(git + ["commit", "-q", "-m", "lab copy"], check=True)
 
     os.makedirs(cfg)
     settings = json.load(open(a.base_settings)) if a.base_settings else {}
