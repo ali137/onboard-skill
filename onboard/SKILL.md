@@ -27,7 +27,9 @@ Paths are relative to this skill's folder; templates are in `templates/`.
 ## Hard rules (every mode)
 
 1. **Join and brief modes write nothing.** No file edits, fixes, or commits.
-   Only record mode writes, and only inside `team/experience/`.
+   The one exception is join mode's documented quick check (step 5), which
+   may write only what its own command writes (caches, test output). Only
+   record mode writes files itself, and only inside `team/experience/`.
 2. **Never fix drift.** A claim that does not match the files or git is
    reported, with what you checked, and the lead is asked.
 3. **The stricter rule wins** when two rules conflict, and the conflict is

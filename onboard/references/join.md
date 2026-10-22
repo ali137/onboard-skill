@@ -50,9 +50,12 @@ never probed. Pick the claims that matter for your next task; at minimum check:
   (not a git repository: say so);
 - for each matching experience note: its files exist, its commit exists
   (`git cat-file -e <commit>`), and those files have not changed since
-  (`git diff --stat <commit> -- <files>`).
+  (`git diff --stat <commit> -- <files>`). A note whose commit is
+  "uncommitted" cannot be pinned: check its files exist and that
+  `git log -1 --format=%cs -- <files>` is not later than the note's date,
+  and mark it "unverified (uncommitted)" in briefing section 6.
 
-Each mismatch is **drift**. Write down the claim, the file it is in, what you
+Each claim that fails a check is **drift**. Write down the claim, the file it is in, what you
 checked, and what you found. Keep going. Never fix it.
 
 ## 4. Conflicting rules
