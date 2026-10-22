@@ -6,10 +6,12 @@ only reads or runs read-only commands, except the documented quick check (step 5
 ## 1. Who am I
 
 - A name or role in your starting prompt: use it.
-- A solo session with no name: your role is "phase session" for the active
-  phase in `PHASES.md`; you report to the user.
-- In a team (your starting prompt says so, or names a lead other than the
-  user) with no name given: ask the lead who you are and **stop here**.
+- In a team (your starting prompt calls you a teammate or team member, or
+  names a lead or other members) with no name or role given: ask the lead who
+  you are and **stop** (a stop case, see step 6).
+- Otherwise you are a solo session. With no name, your role is "phase
+  session" for the active phase in `PHASES.md`, or "newcomer, task unknown"
+  if there is no `PHASES.md`. You report to the user.
 
 ## 2. Read, in this order
 
@@ -26,15 +28,18 @@ Skip any file that does not exist and remember that it was missing.
 5. **State:** `PHASES.md`, then the active phase's prompt (the file it names).
    That prompt gives your next task and its "done when".
 6. **Experience:** `team/experience/INDEX.md`. Open only the notes whose line
-   matches your task (same symptom, same files, same area). Do not open the rest.
+   matches your task (same symptom, same files, same area). Your task is the
+   one you were given now; a note that would matter only if you later touched
+   another area does not match. Do not open the rest.
 
 No project files at all (none of the above, no README): say so, ask the lead
-what the project is, and stop.
+what the project is, and **stop** (a stop case, see step 6).
 
 ## 3. Check before trusting
 
-Compare what the files claim with disk and git. Pick the claims that matter
-for your next task; at minimum check:
+Compare what the files claim with disk and git. Check only inside the project
+folder and its git: a claim about a path outside it is listed as "not checked",
+never probed. Pick the claims that matter for your next task; at minimum check:
 
 - the active phase's prompt exists at the path `PHASES.md` gives, and
   exactly one phase is active (if the file says that is the rule);
@@ -54,7 +59,9 @@ checked, and what you found. Keep going. Never fix it.
 
 When two instructions disagree (two files, a file and your starting prompt, a
 note and a decision), follow the stricter one and name both in the briefing.
-A recorded decision beats an experience note.
+A recorded decision beats an experience note. A conflict is two instructions
+you cannot both follow, such as a request to act now against "wait for go";
+a fact on disk that breaks a rule is drift (step 3), not a conflict.
 
 ## 5. Quick check
 
@@ -65,19 +72,27 @@ run it. A failure is drift: report it, do not fix it. Nothing documented: say
 
 ## 6. Brief and restate
 
-Reply with the briefing below and nothing before it. If your session prompt
-has its own "first reply" section, put what it asks for after the briefing,
-in the same message.
+Reply with the briefing below and nothing before it.
+
+Your session prompt is your starting prompt, or the active phase's prompt when
+the starting prompt points to it. If it has its own "first reply" section, do
+in full what that section asks (its bullets, questions, plan) after section 10,
+in the same message. Describing it inside section 7 does not count.
+
+**Stop cases** (team with no name; no project files): reply with only what is
+missing and your question. No briefing sections, no "Waiting for go."
+
 
 ## 7. Wait
 
-End with "Waiting for go." Start the work only after "go" from the lead
+End the whole message with "Waiting for go." Start the work only after "go" from the lead
 (the user in a solo session, the lead agent in a team).
 
 ## The briefing
 
-Fixed sections, in this order, under about 40 lines in total. Write "none"
-rather than dropping a section. Point to paths instead of copying text.
+Fixed sections, in this order, at most 35 lines in total: one to three lines
+per section, except sections 4 and 10. Write "none" rather than dropping a
+section. Point to paths instead of copying text.
 
 ```
 ## Briefing: <name or role>
@@ -93,6 +108,8 @@ rather than dropping a section. Point to paths instead of copying text.
 9. **Quick check:** <command>: <result>. Or "none documented".
 10. **Questions for the lead:** <numbered questions>. Or "none".
 
+<the session prompt's "first reply", in full, if it has one>
+
 Waiting for go.
 ```
 
@@ -100,10 +117,10 @@ Waiting for go.
 
 | Situation | What to do |
 |---|---|
-| No project files at all | Say so; ask the lead what the project is; stop. |
-| No `PHASES.md` | Section 3: "current phase unknown" (give the last commit if git has one); ask in section 10. |
+| No project files at all | Say so; ask the lead what the project is; stop (no briefing). |
+| No `PHASES.md` | Role "newcomer, task unknown" if no name; section 3: "current phase unknown" (give the last commit if git has one); ask in section 10. |
 | No `team/` folder | Solo fallback from the existing files; section 2: "solo session". |
 | Your role has no role card | Use your starting prompt for role and limits; ask the lead for the card in section 10. |
 | No experience index | Section 6: "none". |
 | Quick check fails | Drift: list it in sections 4 and 9; do not fix; ask. |
-| Team, but no name given | Ask the lead who you are; stop (step 1). |
+| Team, but no name given | Ask the lead who you are; stop (no briefing). |

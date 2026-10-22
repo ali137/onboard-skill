@@ -12,7 +12,8 @@ it writes only `team/experience/`.
   cause sat away from where the symptom showed, or finding it took real
   searching. A typo, or a fix the error message names directly, is obvious.
 
-If either fails, write nothing. Say which condition is missing and why.
+If either fails, write nothing. Say which condition is missing and why. Do
+not offer to write the note anyway: nobody can waive this precondition.
 
 ## 2. Write the note
 
@@ -21,7 +22,8 @@ If either fails, write nothing. Say which condition is missing and why.
 2. Write `team/experience/<YYYY-MM-DD>-<slug>.md` from
    `templates/experience-note.md`. Fill every field from this session's
    evidence:
-   - **commit:** `git rev-parse --short HEAD` if the fix is committed, else "uncommitted";
+   - **commit:** run `git rev-parse --short HEAD` now (do not reuse a hash from
+     memory) if the fix is committed, else "uncommitted";
    - **symptom:** in the words a later agent would search for (the error text, the failing test name);
    - **does not apply when:** the near-miss cases where the note would mislead.
 3. Append one line to `team/experience/INDEX.md`:
