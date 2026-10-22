@@ -31,3 +31,28 @@ def test_valid_rejects_without_crashing():
         bad.append(grade.valid(r))
     assert all(bad), bad
     assert grade.valid(None) and grade.valid([]) and grade.valid("x")
+
+
+FAKE = r'''#!/usr/bin/env python3
+import json, os
+n_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "count")
+n = int(open(n_file).read()) if os.path.exists(n_file) else 0
+open(n_file, "w").write(str(n + 1))
+good = {"questions": [{"id": i, "points": 1, "evidence": "x"} for i in range(1, 9)],
+        "planted_claim_caught": False, "planted_claim_evidence": "y"}
+bad = dict(good, questions=good["questions"][:7])
+print(json.dumps({"num_turns": 2, "structured_output": bad if n == 0 else good}))
+'''
+
+
+def test_retry_then_valid(tmp_path):
+    import types
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "claude").write_text(FAKE)
+    os.chmod(bin_dir / "claude", 0o755)
+    env = {"PATH": f"{bin_dir}:{os.environ['PATH']}"}
+    a = types.SimpleNamespace(tries=3, model="sonnet")
+    reply, attempts = grade.one_grader("prompt", env, a)
+    assert [bool(x["problems"]) for x in attempts] == [True, False]
+    assert grade.valid(reply) == []

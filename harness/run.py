@@ -14,11 +14,14 @@ Builds <out>/work, a writable copy of --src:
   - git: none, like a source without git (git does not look above <out>); with
     --keep-git, the source's history, with the harness's changes hidden in it
     (see keep_history).
-The run gets a fresh CLAUDE_CONFIG_DIR (<out>/cfg) and only an allowlist of the
-caller's environment (HOME stays real; paths a run names under it are recorded). <out>/run-settings.json is
---base-settings (deny rules, guard hooks), Read/Grep/Glob denials for each
---deny-read folder, and claudeMdExcludes for every ancestor memory file, so only
-the copy's own CLAUDE.md loads.
+The run gets a fresh CLAUDE_CONFIG_DIR (<out>/cfg) and only an allowlist of
+the caller's environment. HOME stays real; paths a run names under it are
+recorded. <out>/run-settings.json is
+--base-settings (deny rules, guard hooks), denials for each --deny-read folder
+(Read, Grep, Glob, and Bash commands naming it, plus any Bash "../"), and
+claudeMdExcludes for every ancestor memory file, so only the copy's own
+CLAUDE.md loads. A run's own parent folders cannot be denied (the copy lives
+in them), so paths it names outside the copy are recorded instead.
 
 Writes stream.jsonl, stderr.log, init.json, result.md and run.json (setup
 checks + metrics: turns, the four token counts, time, tool calls deduplicated
@@ -112,8 +115,9 @@ def keep_history(work, rewritten, planted, skill_name, arm):
                              text=True, check=True).stdout.split() if paths else []
     if not tracked:
         return "kept"
-    q = lambda *x: subprocess.run(g + list(x), capture_output=True, text=True,
-                                  check=True).stdout.strip()
+    def q(*x):
+        return subprocess.run(g + list(x), capture_output=True, text=True,
+                              check=True).stdout.strip()
     old = q("rev-parse", "HEAD")
     name, email, date = q("log", "-1", "--format=%cn%x00%ce%x00%cI").split("\0")
     env = dict(os.environ, GIT_COMMITTER_NAME=name, GIT_COMMITTER_EMAIL=email,
@@ -184,6 +188,7 @@ def outside_paths(calls, work):
             if p.startswith(home + "/") and not (p + "/").startswith(work + "/"):
                 found.add(p)
         found |= set(re.findall(r"(?:~|\$HOME|\$\{HOME\})/[^\s'\"`;|&)]*", text))
+        found |= set(re.findall(r"(?:\.\./)+[^\s'\"`;|&)]*", text))
     return sorted(found)
 
 
@@ -272,7 +277,9 @@ def main():
     deny = settings.setdefault("permissions", {}).setdefault("deny", [])
     for d in a.deny_read:
         d = os.path.realpath(d)
-        deny += [f"Read(/{d}/**)", f"Grep(/{d}/**)", f"Glob(/{d}/**)"]
+        deny += [f"Read(/{d}/**)", f"Grep(/{d}/**)", f"Glob(/{d}/**)", f"Bash(*{d}*)"]
+    if a.deny_read:  # relative escapes from the copy, e.g. cat ../../keys/x
+        deny.append("Bash(*../*)")
     json.dump(settings, open(f"{out}/run-settings.json", "w"), indent=2)
 
     prompt = open(a.prompt[1:]).read() if a.prompt.startswith("@") else a.prompt

@@ -26,7 +26,9 @@ MAX_BRIEFING_LINES = 40
 
 def section_re(title):
     """A section line: a heading or a numbered item (bold or not) that opens with the
-    title, or a line that opens with the bold title. Never a bullet inside a section."""
+    title, or a line that opens with the bold title. Never a bullet inside a section.
+    Matches "4. **Drift found:** ...", "**4. Drift found:**", "### 4. Drift found",
+    "## Drift found", "**Drift found:** ..."; not "- Drift found ..."."""
     return re.compile(r"^\s*(?:#{1,6}\s+(?:\*\*|__)?\s*(?:\d+[.)]\s*)?|(?:\*\*|__)?\d+[.)]\s*|(?=\*\*|__))"
                       r"(?:\*\*|__)?\s*" + re.escape(title) + r"\b", re.IGNORECASE)
 
@@ -89,6 +91,9 @@ def check_role_card(text):
 
 
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] in ("-h", "--help"):
+        print(__doc__)
+        return
     if len(sys.argv) < 3 or sys.argv[1] not in ("briefing", "note", "role-card"):
         sys.exit(__doc__)
     kind, paths = sys.argv[1], sys.argv[2:]

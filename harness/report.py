@@ -8,6 +8,7 @@ format.json (format_check.py). The bar: every with-arm run has a sound setup,
 scores at least 7/8 and catches the planted claim; an ungraded run counts as
 not passing.
 """
+import argparse
 import json
 import os
 import sys
@@ -26,15 +27,11 @@ def fmt(x, digits=0):
 
 
 def main():
-    args, title = sys.argv[1:], "Results"
-    if "--title" in args:
-        i = args.index("--title")
-        if i + 1 >= len(args):
-            sys.exit(__doc__)
-        title = args[i + 1]
-        del args[i:i + 2]
-    if not args:
-        sys.exit(__doc__)
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("runs", nargs="+", metavar="RUN", help="run folder holding run.json")
+    ap.add_argument("--title", default="Results")
+    a = ap.parse_args()
+    args, title = a.runs, a.title
     missing = [d for d in args if not os.path.isfile(os.path.join(d, "run.json"))]
     if missing:
         sys.exit(f"report: no run.json in: {', '.join(missing)}")
