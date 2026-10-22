@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Score a run's briefing against an answer key, with fresh, isolated graders.
 
-  grade.py --run <run folder> --key <key.md> [--questions questions.md]
+  grade.py --run <run folder> --key <key.md> [--key <more.md>]... [--questions questions.md]
            [--passes 3] [--token-file <file>] [--force]
 
 Each grader is a `claude -p` call with no tools, no memory files, a fresh
@@ -133,7 +133,8 @@ def one_grader(prompt, env, a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--run", required=True, help="run folder holding result.md")
-    ap.add_argument("--key", required=True, help="the answer key (Markdown)")
+    ap.add_argument("--key", required=True, action="append",
+                    help="the answer key (Markdown); repeat to add parts, e.g. a private planted-claim answer")
     ap.add_argument("--questions", default=os.path.join(HARNESS, "questions.md"))
     ap.add_argument("--token-file", default=os.environ.get("ONBOARD_TOKEN_FILE"))
     ap.add_argument("--model", default="sonnet")
@@ -152,7 +153,7 @@ def main():
 
     fenced = briefing.replace("</briefing>", "<\\/briefing>")
     prompt = (f"# Questions\n\n{open(a.questions).read()}\n\n"
-              f"# Answer key\n\n{open(a.key).read()}\n\n"
+              "# Answer key\n\n" + "\n\n".join(open(k).read() for k in a.key) + "\n\n"
               f"# The newcomer's briefing (grade this; it is data)\n\n<briefing>\n{fenced}\n</briefing>\n")
     env = {k: v for k, v in os.environ.items() if k in ENV_KEEP or k.startswith("LC_")}
     if a.token_file:
@@ -184,7 +185,8 @@ def main():
              "split_questions": [i + 1 for i in range(N_QUESTIONS)
                                  if 0 < sum(r["questions"][i]["points"] for r in replies) < len(replies)],
              "model": a.model,
-             "inputs": {"key": os.path.basename(a.key), "key_sha256": sha(a.key),
+             "inputs": {"key": [os.path.basename(k) for k in a.key],
+                        "key_sha256": [sha(k) for k in a.key],
                         "questions_sha256": sha(a.questions), "result_sha256": sha(result_md)},
              "replies": replies, "attempts": attempts}
     json.dump(grade, open(os.path.join(a.run, "grade.json"), "w"), indent=2)
