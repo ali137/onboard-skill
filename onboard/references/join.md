@@ -77,7 +77,8 @@ Reply with the briefing below and nothing before it.
 Your session prompt is your starting prompt, or the active phase's prompt when
 the starting prompt points to it. If it has its own "first reply" section, do
 in full what that section asks (its bullets, questions, plan) after section 10,
-in the same message. Describing it inside section 7 does not count.
+in the same message. Describing it inside section 7, or asking in section 10
+whether to give it, does not count.
 
 **Stop cases** (team with no name; no project files): reply with only what is
 missing and your question. No briefing sections, no "Waiting for go."
