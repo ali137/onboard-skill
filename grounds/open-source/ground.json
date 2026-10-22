@@ -1,0 +1,23 @@
+{
+  "repo": "https://github.com/Redocly/redocly-cli.git",
+  "pin": "70c8a46e4709ca1c9442aa795d203cf32dcf0da4",
+  "pin_date": "2026-10-22",
+  "bugs": {
+    "walk": {
+      "fix": "92f4ce76d62b5dc8154b6298e99cbeea385bac53",
+      "fix_date": "2026-08-31",
+      "src": ["packages/core/src/walk.ts"],
+      "test": "packages/core/src/__tests__/walk.test.ts",
+      "test_name": "should not visit a nested rule when another rule re-enters a shared $ref-ed node",
+      "renames": []
+    },
+    "bundle": {
+      "fix": "8bf72346141918bc9b4c5ba7a4cd378cb6cd7c46",
+      "fix_date": "2026-07-20",
+      "src": ["packages/core/src/bundle/bundle-visitor.ts"],
+      "test": "packages/core/src/__tests__/bundle.test.ts",
+      "test_name": "should keep operation message refs pointing to channel messages in asyncapi 3",
+      "renames": [["resolved.location", "target.location"]]
+    }
+  }
+}

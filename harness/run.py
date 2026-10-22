@@ -2,7 +2,7 @@
 """One clean, isolated `claude -p` test run, with metrics.
 
   run.py --arm with|without --src <snapshot> --out <new run folder> --prompt <text or @file>
-         [--skill <skill folder>] [--plant <plant.json>] [--keep-git]
+         [--skill <skill folder>] [--plant <plant.json>] [--prepare <command>] [--keep-git]
          [--base-settings <settings.json>] [--deny-read <dir>]... [--token-file <file>]
 
 Builds <out>/work, a writable copy of --src:
@@ -10,10 +10,12 @@ Builds <out>/work, a writable copy of --src:
     fails before starting if any is left;
   - --plant applies planted claims (JSON: one {"file", "find", "replace"} or a
     list; each "find" must occur exactly once), in the copy only;
+  - --prepare runs a command on the copy (its path added as the last argument),
+    for example to seed a bug; its output goes to <out>/prepare.log;
   - the "with" arm gets the skill in .claude/skills/<name>/;
   - git: none, like a source without git (git does not look above <out>); with
-    --keep-git, the source's history, with the harness's changes hidden in it
-    (see keep_history).
+    --keep-git, the source's history, with the harness's changes (rewrites,
+    plants, --prepare) hidden in it (see keep_history).
 The run gets a fresh CLAUDE_CONFIG_DIR (<out>/cfg) and only an allowlist of
 the caller's environment. HOME stays real; paths a run names under it are
 recorded. <out>/run-settings.json is
@@ -26,7 +28,7 @@ in them), so paths it names outside the copy are recorded instead.
 Writes stream.jsonl, stderr.log, init.json, result.md and run.json (setup
 checks + metrics: turns, the four token counts, time, tool calls deduplicated
 by id and split into main agent and subagents, permission denials, paths
-named outside the copy). Exits 1 if the run's skill list does not match its
+named outside the copy, Bash commands that read git history). Exits 1 if the run's skill list does not match its
 arm, a user skill, MCP server, plugin or undeclared hook loaded, a --token-file
 run was billed to an API key, or the run ended in an error.
 """
@@ -35,6 +37,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -99,6 +102,21 @@ def plant(work, spec_path):
         open(p, "w", encoding="utf-8", newline="").write(text.replace(item["find"], item["replace"]))
         done.append(item["file"])
     return done
+
+
+def prepare(work, command, out):
+    """Run the --prepare command on the copy. Returns the tracked files it changed."""
+    def dirty():
+        if not os.path.isdir(f"{work}/.git"):
+            return set()
+        return set(subprocess.run(["git", "-C", work, "diff", "--name-only"], capture_output=True,
+                                  text=True, check=True).stdout.split())
+    before = dirty()
+    with open(f"{out}/prepare.log", "w") as log:
+        r = subprocess.run(shlex.split(command) + [work], stdout=log, stderr=subprocess.STDOUT)
+    if r.returncode:
+        sys.exit(f"run: --prepare exited {r.returncode}; see {out}/prepare.log")
+    return sorted(dirty() - before)
 
 
 def keep_history(work, rewritten, planted, skill_name, arm):
@@ -198,6 +216,16 @@ def outside_paths(calls, work):
     return sorted(found)
 
 
+GIT_HISTORY = re.compile(r"\bgit\b.*\b(log|show|blame|reflog|rev-list|whatchanged|diff)\b")
+
+
+def git_history_calls(calls):
+    """Bash commands that read git history. A seeded bug's fix is in the history,
+    so these show whether a run went looking for it."""
+    return [(inp or {}).get("command", "") for name, _, inp in calls.values()
+            if name == "Bash" and GIT_HISTORY.search((inp or {}).get("command", ""))]
+
+
 def tool_calls(events):
     """{id: (name, parent_tool_use_id, input)}: tool_use blocks, deduplicated by id."""
     calls = {}
@@ -228,6 +256,7 @@ def metrics(calls, result, work):
         "permission_denials": len(result.get("permission_denials") or []),
         "tools": dict(Counter(n for n, _, _ in calls.values()).most_common()),
         "outside_paths": outside_paths(calls, work),
+        "git_history_calls": git_history_calls(calls),
     }
 
 
@@ -240,6 +269,7 @@ def main():
     ap.add_argument("--skill", default=os.path.join(os.path.dirname(HARNESS), "onboard"),
                     help="skill folder copied into the with arm (default: ../onboard)")
     ap.add_argument("--plant", help="planted-claim JSON, applied to the copy only")
+    ap.add_argument("--prepare", help="a command run on the copy, its path added last (e.g. seed a bug)")
     ap.add_argument("--keep-git", action="store_true", help="keep the source's git history")
     ap.add_argument("--base-settings", help="settings JSON the run starts from (deny rules, guard)")
     ap.add_argument("--deny-read", action="append", default=[], metavar="DIR",
@@ -273,9 +303,10 @@ def main():
     if left:
         sys.exit(f"run: the copy still names the source path in: {left}")
     planted = plant(work, a.plant) if a.plant else []
+    prepared = prepare(work, a.prepare, out) if a.prepare else []
     if a.arm == "with":
         shutil.copytree(a.skill, f"{work}/.claude/skills/{skill_name}")
-    git_mode = keep_history(work, rewritten, planted, skill_name, a.arm) if a.keep_git else "none"
+    git_mode = keep_history(work, rewritten, planted + prepared, skill_name, a.arm) if a.keep_git else "none"
 
     os.makedirs(cfg)
     settings = json.load(open(a.base_settings)) if a.base_settings else {}
@@ -360,7 +391,8 @@ def main():
     record = {
         "arm": a.arm, "ok": ok, "src": src, "model": a.model, "git": git_mode,
         "harness": harness_version(), "env_keys": sorted(k for k in env if "TOKEN" not in k),
-        "paths_rewritten_files": rewritten, "planted": planted, "wall_s": wall,
+        "paths_rewritten_files": rewritten, "planted": planted,
+        "prepare": a.prepare, "prepared": prepared, "wall_s": wall,
         "metrics": metrics(calls, result, work), "checks": checks,
     }
     json.dump(record, open(f"{out}/run.json", "w"), indent=2)
