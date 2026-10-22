@@ -137,6 +137,8 @@ def test_keep_git(tmp_path):
     subprocess.run(g + ["add", "-A"], check=True)
     subprocess.run(g + ["commit", "-q", "-m", "first real commit"], check=True)
     subprocess.run(g + ["update-ref", "refs/remotes/origin/main", "HEAD"], check=True)
+    subprocess.run(g + ["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"],
+                   check=True)  # as in a real clone
     write(str(src / "README.md"), "hi, edited but not committed\n")
     plant = tmp_path / "plant.json"
     write(str(plant), json.dumps({"file": "PHASES.md", "find": "| active | |",
@@ -151,6 +153,7 @@ def test_keep_git(tmp_path):
     assert q("status", "--porcelain") == " M README.md\n"
     assert "| done | 2026-01-01 |" in q("show", "HEAD:PHASES.md")
     assert q("rev-parse", "HEAD") == q("rev-parse", "refs/remotes/origin/main")
+    assert q("symbolic-ref", "refs/remotes/origin/HEAD") == "refs/remotes/origin/main\n"
     assert q("reflog") == ""
     assert json.load(open(out / "run.json"))["git"].startswith("kept")
 

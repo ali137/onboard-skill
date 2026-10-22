@@ -47,7 +47,9 @@ from collections import Counter
 
 HARNESS = os.path.dirname(os.path.abspath(__file__))
 SKIP_REWRITE = {".git", "node_modules"}
-ENV_KEEP = {"HOME", "PATH", "LANG", "LANGUAGE", "TERM", "TMPDIR", "TZ", "USER", "LOGNAME", "SHELL"}
+# npm_config_cache: a caller can keep npm (npx) out of ~/.npm
+ENV_KEEP = {"HOME", "PATH", "LANG", "LANGUAGE", "TERM", "TMPDIR", "TZ", "USER", "LOGNAME", "SHELL",
+            "npm_config_cache"}
 AUTH_VARS = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
              "ANTHROPIC_BASE_URL", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX")
 
@@ -144,8 +146,10 @@ def keep_history(work, rewritten, planted, skill_name, arm):
     subprocess.run(g + ["commit", "-q", "--amend", "--no-edit", "--no-verify", "--only",
                         "--", *tracked], check=True, env=env)
     new = q("rev-parse", "HEAD")
-    for ref in q("for-each-ref", "--format=%(refname)", "--points-at", old).split():
-        subprocess.run(g + ["update-ref", ref, new, old], check=True)
+    for line in q("for-each-ref", "--format=%(refname) %(symref)", "--points-at", old).splitlines():
+        ref, symref = (line.split(" ", 1) + [""])[:2]
+        if not symref.strip():  # a symbolic ref (origin/HEAD) follows its target
+            subprocess.run(g + ["update-ref", ref, new, old], check=True)
     subprocess.run(g + ["reflog", "expire", "--expire=now", "--all"], check=True)
     return "kept, harness changes folded into HEAD"
 
