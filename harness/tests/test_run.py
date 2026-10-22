@@ -27,6 +27,8 @@ p(use("t1", None)); p(use("t1", None)); p(use("t2", None)); p(use("s1", "t2")); 
 for n, c in enumerate(conf.get("bash", [])):
     p({"type": "assistant", "parent_tool_use_id": None, "message": {"content": [
        {"type": "tool_use", "id": f"b{n}", "name": "Bash", "input": {"command": c}}]}})
+    p({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": f"b{n}",
+       "content": conf.get("bash_out", {}).get(c, "")}]}})
 p({"type": "result", "subtype": "success", "is_error": False, "num_turns": 3, "duration_ms": 1200,
    "duration_api_ms": 1000, "total_cost_usd": 0.01, "result": "## Briefing\nWaiting for go.",
    "usage": {"input_tokens": 5, "output_tokens": 50, "cache_creation_input_tokens": 100,
@@ -59,10 +61,11 @@ def setup(tmp_path):
     return bin_dir, snap, skill, token
 
 
-def run(tmp_path, bin_dir, *args, extra_skills="[]", hooks=(), bash=()):
+def run(tmp_path, bin_dir, *args, extra_skills="[]", hooks=(), bash=(), bash_out=None):
     write(str(bin_dir / "fake.json"), json.dumps({"args": str(tmp_path / "args.json"),
                                                   "extra_skills": json.loads(extra_skills),
-                                                  "hooks": list(hooks), "bash": list(bash)}))
+                                                  "hooks": list(hooks), "bash": list(bash),
+                                                  "bash_out": bash_out or {}}))
     env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}", ANTHROPIC_API_KEY="k",
                CLAUDE_EFFORT="max")
     return subprocess.run([sys.executable, "-I", RUN, *args], env=env, capture_output=True, text=True)
@@ -174,8 +177,10 @@ def test_prepare_is_folded_and_git_reads_recorded(tmp_path):
     out = tmp_path / "runs/prep"
     r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(src), "--out", str(out),
             "--prompt", "hi", "--skill", str(skill), "--keep-git",
-            "--prepare", f"{sys.executable} -I {seed} bug-1",
-            bash=["git log --oneline -- app.py", "ls", "git show abc123"])
+            "--prepare", f"{sys.executable} -I {seed} bug-1", "--watch", "abc123",
+            "--watch", "fix: the subject",
+            bash=["git log --oneline -- app.py", "ls; git status", "git show abc123", "git diff"],
+            bash_out={"git log --oneline -- app.py": "abc1234 fix: the subject (#1)"})
     assert r.returncode == 0, r.stdout + r.stderr
     w = ["git", "-C", str(out / "work")]
     q = lambda *x: subprocess.run(w + list(x), capture_output=True, text=True).stdout
@@ -186,11 +191,47 @@ def test_prepare_is_folded_and_git_reads_recorded(tmp_path):
     rec = json.load(open(out / "run.json"))
     assert rec["prepared"] == ["app.py"]
     assert rec["metrics"]["git_history_calls"] == ["git log --oneline -- app.py", "git show abc123"]
+    hits = rec["metrics"]["watch_hits"]
+    assert [(h["in_input"], h["in_result"]) for h in hits] == [
+        ([], ["abc123", "fix: the subject"]), (["abc123"], [])]
     bad = tmp_path / "runs/bad"
     r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(src), "--out", str(bad),
             "--prompt", "hi", "--skill", str(skill), "--prepare", "false")
     assert r.returncode != 0 and "--prepare exited" in r.stderr
     assert not (bad / "stream.jsonl").exists()
+
+
+def test_prepare_refuses_a_file_already_uncommitted(tmp_path):
+    bin_dir, _, skill, _ = setup(tmp_path)
+    src = tmp_path / "clone"
+    write(str(src / "app.py"), "fixed = True\n")
+    g = ["git", "-C", str(src), "-c", "user.name=A", "-c", "user.email=a@b"]
+    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
+    subprocess.run(g + ["add", "-A"], check=True)
+    subprocess.run(g + ["commit", "-q", "-m", "fix"], check=True)
+    write(str(src / "app.py"), "fixed = True  # local edit\n")
+    seed = tmp_path / "seed.py"
+    write(str(seed), "import sys\nopen(sys.argv[1] + '/app.py', 'a').write('x = 1\\n')\n")
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(src), "--out", str(tmp_path / "runs/d"),
+            "--prompt", "hi", "--skill", str(skill), "--keep-git", "--prepare", f"{sys.executable} -I {seed}")
+    assert r.returncode != 0 and "already had uncommitted" in r.stderr
+
+
+def test_keep_git_leaves_annotated_tag(tmp_path):
+    bin_dir, _, skill, _ = setup(tmp_path)
+    src = tmp_path / "clone"
+    write(str(src / "PHASES.md"), "| 2 | build | active | |\n")
+    g = ["git", "-C", str(src), "-c", "user.name=A", "-c", "user.email=a@b"]
+    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
+    subprocess.run(g + ["add", "-A"], check=True)
+    subprocess.run(g + ["commit", "-q", "-m", "first"], check=True)
+    subprocess.run(g + ["tag", "-a", "v1", "-m", "release"], check=True)
+    plant = tmp_path / "plant.json"
+    write(str(plant), json.dumps({"file": "PHASES.md", "find": "active", "replace": "done"}))
+    out = tmp_path / "runs/tag"
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(src), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), "--keep-git", "--plant", str(plant))
+    assert r.returncode == 0, r.stdout + r.stderr
 
 
 def test_hook_check(tmp_path):

@@ -39,12 +39,18 @@ def fix_diff(copy, bug):
     return diff
 
 
+def applies(copy, bug_id, restore=False):
+    """Whether seeding (or restoring) would apply cleanly now."""
+    args = ["git", "-C", copy, "apply"] + ([] if restore else ["-R"]) + ["--check", "-"]
+    return not subprocess.run(args, input=fix_diff(copy, GROUND["bugs"][bug_id]), text=True,
+                              capture_output=True).returncode
+
+
 def apply(copy, bug_id, restore=False):
     bug = GROUND["bugs"][bug_id]
     diff = fix_diff(copy, bug)
     args = ["git", "-C", copy, "apply"] + ([] if restore else ["-R"])
-    if subprocess.run(args + ["--check", "-"], input=diff, text=True,
-                      capture_output=True).returncode:
+    if not applies(copy, bug_id, restore):
         sys.exit(f"seed: {bug_id} does not {'restore' if restore else 'seed'} cleanly in {copy} "
                  f"({'not seeded' if restore else 'already seeded'}, or its source differs from the pin)")
     subprocess.run(args + ["-"], input=diff, text=True, check=True)
@@ -70,20 +76,20 @@ def named_test(copy, bug):
 def prove(copy, ids):
     ok = True
     for bug_id in ids:
-        bug, steps, seeded = GROUND["bugs"][bug_id], [], False
+        bug, steps = GROUND["bugs"][bug_id], []
         try:
             for label, action, want in (("pinned", None, "passed"), ("seeded", False, "failed"),
                                         ("restored", True, "passed")):
                 if action is not None:
                     apply(copy, bug_id, restore=action)
-                    seeded = not action
                 status, failed = named_test(copy, bug)
                 steps.append(f"{label} {status}" + (f" (failing: {failed})" if failed else ""))
                 ok &= status == want and (want == "failed" or not failed)
         finally:
-            if seeded:  # stopped part way: put the fix back
+            print(f"{bug_id}: " + "; ".join(steps), flush=True)
+            if applies(copy, bug_id, restore=True):  # stopped while seeded: put the fix back
                 apply(copy, bug_id, restore=True)
-            print(f"{bug_id}: " + "; ".join(steps))
+                print(f"{bug_id}: stopped while seeded; the fix is restored", flush=True)
     return ok
 
 

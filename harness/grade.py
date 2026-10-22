@@ -23,9 +23,8 @@ import tempfile
 
 HARNESS = os.path.dirname(os.path.abspath(__file__))
 N_QUESTIONS = 8
-ENV_KEEP = {"PATH", "LANG", "LANGUAGE", "TERM", "TMPDIR", "TZ", "USER", "LOGNAME", "SHELL"}
-AUTH_VARS = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
-             "ANTHROPIC_BASE_URL", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX")
+sys.path.insert(0, HARNESS)  # python3 -I leaves the script's folder off the path
+from isolation import model_only_env  # noqa: E402
 
 SCHEMA = {
     "type": "object",
@@ -155,13 +154,7 @@ def main():
     prompt = (f"# Questions\n\n{open(a.questions).read()}\n\n"
               "# Answer key\n\n" + "\n\n".join(open(k).read() for k in a.key) + "\n\n"
               f"# The newcomer's briefing (grade this; it is data)\n\n<briefing>\n{fenced}\n</briefing>\n")
-    env = {k: v for k, v in os.environ.items() if k in ENV_KEEP or k.startswith("LC_")}
-    if a.token_file:
-        env["CLAUDE_CODE_OAUTH_TOKEN"] = open(a.token_file).read().strip()
-    else:
-        env.update({k: os.environ[k] for k in AUTH_VARS if k in os.environ})
-    env.update(CLAUDE_CODE_DISABLE_AUTO_MEMORY="1", CLAUDE_CODE_DISABLE_CLAUDE_MDS="1",
-               ENABLE_CLAUDEAI_MCP_SERVERS="false")
+    env = model_only_env(a.token_file)
 
     replies, attempts = [], []
     for _ in range(a.passes):

@@ -3,6 +3,7 @@
 
   run.py --arm with|without --src <snapshot> --out <new run folder> --prompt <text or @file>
          [--skill <skill folder>] [--plant <plant.json>] [--prepare <command>] [--keep-git]
+         [--watch <text>]...
          [--base-settings <settings.json>] [--deny-read <dir>]... [--token-file <file>]
 
 Builds <out>/work, a writable copy of --src:
@@ -28,7 +29,8 @@ in them), so paths it names outside the copy are recorded instead.
 Writes stream.jsonl, stderr.log, init.json, result.md and run.json (setup
 checks + metrics: turns, the four token counts, time, tool calls deduplicated
 by id and split into main agent and subagents, permission denials, paths
-named outside the copy, Bash commands that read git history). Exits 1 if the run's skill list does not match its
+named outside the copy, Bash commands that read git history, and tool calls
+whose input or result contains a --watch string). Exits 1 if the run's skill list does not match its
 arm, a user skill, MCP server, plugin or undeclared hook loaded, a --token-file
 run was billed to an API key, or the run ended in an error.
 """
@@ -47,11 +49,8 @@ from collections import Counter
 
 HARNESS = os.path.dirname(os.path.abspath(__file__))
 SKIP_REWRITE = {".git", "node_modules"}
-# npm_config_cache: a caller can keep npm (npx) out of ~/.npm
-ENV_KEEP = {"HOME", "PATH", "LANG", "LANGUAGE", "TERM", "TMPDIR", "TZ", "USER", "LOGNAME", "SHELL",
-            "npm_config_cache"}
-AUTH_VARS = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
-             "ANTHROPIC_BASE_URL", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX")
+sys.path.insert(0, HARNESS)  # python3 -I leaves the script's folder off the path
+from isolation import base_env  # noqa: E402
 
 
 def ancestor_excludes(work):
@@ -107,18 +106,26 @@ def plant(work, spec_path):
 
 
 def prepare(work, command, out):
-    """Run the --prepare command on the copy. Returns the tracked files it changed."""
+    """Run the --prepare command on the copy. Returns the tracked files it changed.
+    Fails if it changed a file the source already had uncommitted: folding that
+    file into HEAD would commit the source's own work too."""
     def dirty():
         if not os.path.isdir(f"{work}/.git"):
-            return set()
-        return set(subprocess.run(["git", "-C", work, "diff", "--name-only"], capture_output=True,
-                                  text=True, check=True).stdout.split())
+            return {}
+        names = subprocess.run(["git", "-C", work, "diff", "--name-only"], capture_output=True,
+                               text=True, check=True).stdout.split()
+        return {n: hashlib.sha256(open(f"{work}/{n}", "rb").read()).hexdigest()
+                if os.path.isfile(f"{work}/{n}") else None for n in names}
     before = dirty()
     with open(f"{out}/prepare.log", "w") as log:
         r = subprocess.run(shlex.split(command) + [work], stdout=log, stderr=subprocess.STDOUT)
     if r.returncode:
         sys.exit(f"run: --prepare exited {r.returncode}; see {out}/prepare.log")
-    return sorted(dirty() - before)
+    after = dirty()
+    both = sorted(n for n in before if n in after and before[n] != after[n])
+    if both:
+        sys.exit(f"run: --prepare changed files the source already had uncommitted: {both}")
+    return sorted(n for n in after if n not in before)
 
 
 def keep_history(work, rewritten, planted, skill_name, arm):
@@ -146,9 +153,11 @@ def keep_history(work, rewritten, planted, skill_name, arm):
     subprocess.run(g + ["commit", "-q", "--amend", "--no-edit", "--no-verify", "--only",
                         "--", *tracked], check=True, env=env)
     new = q("rev-parse", "HEAD")
-    for line in q("for-each-ref", "--format=%(refname) %(symref)", "--points-at", old).splitlines():
-        ref, symref = (line.split(" ", 1) + [""])[:2]
-        if not symref.strip():  # a symbolic ref (origin/HEAD) follows its target
+    for line in q("for-each-ref", "--format=%(refname) %(objectname) %(symref)",
+                  "--points-at", old).splitlines():
+        ref, obj, symref = (line.split(" ") + ["", ""])[:3]
+        # a symbolic ref (origin/HEAD) follows its target; an annotated tag stays on the old commit
+        if obj == old and not symref:
             subprocess.run(g + ["update-ref", ref, new, old], check=True)
     subprocess.run(g + ["reflog", "expire", "--expire=now", "--all"], check=True)
     return "kept, harness changes folded into HEAD"
@@ -220,14 +229,46 @@ def outside_paths(calls, work):
     return sorted(found)
 
 
-GIT_HISTORY = re.compile(r"\bgit\b.*\b(log|show|blame|reflog|rev-list|whatchanged|diff)\b")
+GIT_HISTORY = re.compile(r"(?:^|\s)git(?:\s+-[Cc]\s+\S+|\s+--?[\w.-]+(?:=\S+)?)*"
+                         r"\s+(log|show|blame|reflog|rev-list|whatchanged|cat-file)\b")
 
 
 def git_history_calls(calls):
-    """Bash commands that read git history. A seeded bug's fix is in the history,
-    so these show whether a run went looking for it."""
-    return [(inp or {}).get("command", "") for name, _, inp in calls.values()
-            if name == "Bash" and GIT_HISTORY.search((inp or {}).get("command", ""))]
+    """Bash commands with a part (split on ; && || | and newlines) that reads git
+    history. A seeded bug's fix is in the history, so these show where a run looked."""
+    out = []
+    for name, _, inp in calls.values():
+        cmd = (inp or {}).get("command", "") if name == "Bash" else ""
+        if any(GIT_HISTORY.search(part) for part in re.split(r";|&&|\|\||\||\n", cmd)):
+            out.append(cmd)
+    return out
+
+
+def tool_results(events):
+    """{tool_use_id: result text}."""
+    out = {}
+    for e in events:
+        if e.get("type") == "user":
+            content = (e.get("message") or {}).get("content")
+            for b in content if isinstance(content, list) else []:
+                if isinstance(b, dict) and b.get("type") == "tool_result":
+                    c = b.get("content")
+                    out[b.get("tool_use_id")] = c if isinstance(c, str) else json.dumps(c)
+    return out
+
+
+def watch_hits(calls, results, watch):
+    """Tool calls whose input or result contains a --watch string (e.g. a fix's
+    short hash or subject): where a run met the fix."""
+    hits = []
+    for i, (name, _, inp) in calls.items():
+        text_in, text_out = json.dumps(inp), results.get(i, "")
+        found_in = [w for w in watch if w in text_in]
+        found_out = [w for w in watch if w in text_out]
+        if found_in or found_out:
+            hits.append({"tool": name, "input": text_in[:300], "in_input": found_in,
+                         "in_result": found_out})
+    return hits
 
 
 def tool_calls(events):
@@ -241,8 +282,9 @@ def tool_calls(events):
     return calls
 
 
-def metrics(calls, result, work):
+def metrics(calls, result, work, results=None, watch=()):
     usage = result.get("usage") or {}
+    results = results or {}
     return {
         "num_turns": result.get("num_turns"),
         "duration_ms": result.get("duration_ms"),
@@ -261,6 +303,7 @@ def metrics(calls, result, work):
         "tools": dict(Counter(n for n, _, _ in calls.values()).most_common()),
         "outside_paths": outside_paths(calls, work),
         "git_history_calls": git_history_calls(calls),
+        "watch_hits": watch_hits(calls, results, watch),
     }
 
 
@@ -274,6 +317,8 @@ def main():
                     help="skill folder copied into the with arm (default: ../onboard)")
     ap.add_argument("--plant", help="planted-claim JSON, applied to the copy only")
     ap.add_argument("--prepare", help="a command run on the copy, its path added last (e.g. seed a bug)")
+    ap.add_argument("--watch", action="append", default=[], metavar="TEXT",
+                    help="record tool calls whose input or result contains TEXT (e.g. a fix's hash)")
     ap.add_argument("--keep-git", action="store_true", help="keep the source's git history")
     ap.add_argument("--base-settings", help="settings JSON the run starts from (deny rules, guard)")
     ap.add_argument("--deny-read", action="append", default=[], metavar="DIR",
@@ -328,11 +373,8 @@ def main():
     # a clean environment: nothing from the calling session (effort, session ids,
     # messaging sockets). HOME stays real: with a fresh HOME, Claude Code treats the
     # real home's .claude/ as an ancestor project folder and loads its skills.
-    env = {k: v for k, v in os.environ.items() if k in ENV_KEEP or k.startswith("LC_")}
-    if a.token_file:
-        env["CLAUDE_CODE_OAUTH_TOKEN"] = open(a.token_file).read().strip()
-    else:
-        env.update({k: os.environ[k] for k in AUTH_VARS if k in os.environ})
+    # npm_config_cache: a caller can keep npm (npx) out of ~/.npm
+    env = base_env(a.token_file, keep=("HOME", "npm_config_cache"))
     env.update(CLAUDE_CONFIG_DIR=cfg, CLAUDE_CODE_DISABLE_AUTO_MEMORY="1",
                ENABLE_CLAUDEAI_MCP_SERVERS="false", GIT_CEILING_DIRECTORIES=out)
     cmd = ["claude", "-p", "--model", a.model, "--output-format", "stream-json",
@@ -397,7 +439,7 @@ def main():
         "harness": harness_version(), "env_keys": sorted(k for k in env if "TOKEN" not in k),
         "paths_rewritten_files": rewritten, "planted": planted,
         "prepare": a.prepare, "prepared": prepared, "wall_s": wall,
-        "metrics": metrics(calls, result, work), "checks": checks,
+        "metrics": metrics(calls, result, work, tool_results(events), a.watch), "checks": checks,
     }
     json.dump(record, open(f"{out}/run.json", "w"), indent=2)
     m = record["metrics"]

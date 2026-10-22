@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Ask a model about a bug cold, from memory alone: does it already know the fix?
 
-  probe.py --prompt <text or @file> --out <answers.json> [--passes 3]
+  probe.py --prompt <text or @file> --out <answers.json> [--passes 3] [--tries 3]
            [--token-file <file>] [--model sonnet]
 
 Each pass is a `claude -p` call with no tools, no repository, no memory files,
 a fresh CLAUDE_CONFIG_DIR and HOME, an empty working folder and only an
-allowlist of the caller's environment, set up like grade.py's graders. Writes
-the prompt and every answer to --out. Whether an answer names the fix is
-judged afterwards, against the fix's diff.
+allowlist of the caller's environment, set up like grade.py's graders. A pass
+that fails or times out is retried (up to --tries). --out is rewritten after
+every pass, so finished answers are kept if a later pass fails. Whether an
+answer names the fix is judged afterwards, against the fix's diff.
 """
 import argparse
 import json
@@ -17,14 +18,16 @@ import subprocess
 import sys
 import tempfile
 
-ENV_KEEP = {"PATH", "LANG", "LANGUAGE", "TERM", "TMPDIR", "TZ", "USER", "LOGNAME", "SHELL"}
-AUTH_VARS = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
-             "ANTHROPIC_BASE_URL", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX")
+HARNESS = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HARNESS)  # python3 -I leaves the script's folder off the path
+from isolation import model_only_env  # noqa: E402
+
 SYSTEM = ("Answer the user's question from what you know. You have no tools and no access "
           "to the repository or the internet.")
 
 
 def one_pass(prompt, env, model):
+    """(answer record, None) or (None, the reason it failed)."""
     with tempfile.TemporaryDirectory(prefix="probe-") as tmp:
         for d in ("cfg", "cwd", "home"):
             os.makedirs(f"{tmp}/{d}")
@@ -32,16 +35,19 @@ def one_pass(prompt, env, model):
         cmd = ["claude", "-p", "--model", model, "--output-format", "json", "--tools", "",
                "--system-prompt", SYSTEM, "--max-turns", "1",
                "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
-        p = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
-                           cwd=f"{tmp}/cwd", env=env, timeout=600)
+        try:
+            p = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
+                               cwd=f"{tmp}/cwd", env=env, timeout=600)
+        except subprocess.TimeoutExpired:
+            return None, "timeout"
     try:
         out = json.loads(p.stdout)
     except ValueError:
-        sys.exit(f"probe: no JSON reply: {p.stdout[-500:]} {p.stderr[-500:]}")
-    if out.get("is_error") or not out.get("result"):
-        sys.exit(f"probe: the call failed: {json.dumps(out)[:500]}")
+        return None, f"no JSON reply: {p.stdout[-300:]} {p.stderr[-300:]}"
+    if not isinstance(out, dict) or out.get("is_error") or not out.get("result"):
+        return None, f"the call failed: {json.dumps(out)[:300]}"
     return {"answer": out["result"], "model": next(iter(out.get("modelUsage") or {}), model),
-            "duration_ms": out.get("duration_ms"), "usage": out.get("usage")}
+            "duration_ms": out.get("duration_ms"), "usage": out.get("usage")}, None
 
 
 def main():
@@ -49,23 +55,26 @@ def main():
     ap.add_argument("--prompt", required=True, help="the question, or @file")
     ap.add_argument("--out", required=True, help="answers JSON (must not exist)")
     ap.add_argument("--passes", type=int, default=3)
+    ap.add_argument("--tries", type=int, default=3, help="tries per pass")
     ap.add_argument("--token-file", default=os.environ.get("ONBOARD_TOKEN_FILE"))
     ap.add_argument("--model", default="sonnet")
     a = ap.parse_args()
     if os.path.lexists(a.out):
         sys.exit(f"probe: {a.out} exists")
     prompt = open(a.prompt[1:]).read() if a.prompt.startswith("@") else a.prompt
-    env = {k: v for k, v in os.environ.items() if k in ENV_KEEP or k.startswith("LC_")}
-    if a.token_file:
-        env["CLAUDE_CODE_OAUTH_TOKEN"] = open(a.token_file).read().strip()
-    else:
-        env.update({k: os.environ[k] for k in AUTH_VARS if k in os.environ})
-    env.update(CLAUDE_CODE_DISABLE_AUTO_MEMORY="1", CLAUDE_CODE_DISABLE_CLAUDE_MDS="1",
-               ENABLE_CLAUDEAI_MCP_SERVERS="false")
-    answers = [one_pass(prompt, env, a.model) for _ in range(a.passes)]
-    json.dump({"prompt": prompt, "system": SYSTEM, "passes": answers},
-              open(a.out, "w"), indent=2)
-    print(f"probe: {len(answers)} answers in {a.out}")
+    env = model_only_env(a.token_file)
+    record = {"prompt": prompt, "system": SYSTEM, "passes": [], "failures": []}
+    for n in range(a.passes):
+        for _ in range(a.tries):
+            answer, why = one_pass(prompt, env, a.model)
+            if answer:
+                record["passes"].append(answer)
+                break
+            record["failures"].append({"pass": n + 1, "why": why})
+        json.dump(record, open(a.out, "w"), indent=2)
+        if not answer:
+            sys.exit(f"probe: pass {n + 1} failed {a.tries} times: {why}")
+    print(f"probe: {len(record['passes'])} answers in {a.out}")
 
 
 if __name__ == "__main__":
