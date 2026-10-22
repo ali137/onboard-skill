@@ -10,11 +10,15 @@ RUN = os.path.join(HARNESS, "run.py")
 FAKE_CLAUDE = r'''#!/usr/bin/env python3
 import json, os, sys
 skills = sorted(os.listdir(".claude/skills")) if os.path.isdir(".claude/skills") else []
-skills += json.loads(os.environ.get("FAKE_EXTRA_SKILLS", "[]"))
-open(os.environ["FAKE_ARGS"], "w").write(json.dumps({"argv": sys.argv[1:], "cwd": os.getcwd(),
+conf = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fake.json")))
+skills += conf["extra_skills"]
+open(conf["args"], "w").write(json.dumps({"argv": sys.argv[1:], "cwd": os.getcwd(),
      "token": os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"), "api": os.environ.get("ANTHROPIC_API_KEY"),
-     "cfg": os.environ.get("CLAUDE_CONFIG_DIR"), "stdin": sys.stdin.read()}))
+     "cfg": os.environ.get("CLAUDE_CONFIG_DIR"), "home": os.environ.get("HOME"),
+     "leak": os.environ.get("CLAUDE_EFFORT"), "stdin": sys.stdin.read()}))
 def p(e): print(json.dumps(e))
+for h in conf.get("hooks", []):
+    p({"type": "system", "subtype": "hook_started", "hook_name": h})
 p({"type": "system", "subtype": "init", "skills": skills, "mcp_servers": [],
    "plugins": [{"name": "b", "path": "builtin"}]})
 use = lambda i, parent: {"type": "assistant", "parent_tool_use_id": parent,
@@ -52,9 +56,12 @@ def setup(tmp_path):
     return bin_dir, snap, skill, token
 
 
-def run(tmp_path, bin_dir, *args, extra_skills="[]"):
+def run(tmp_path, bin_dir, *args, extra_skills="[]", hooks=()):
+    write(str(bin_dir / "fake.json"), json.dumps({"args": str(tmp_path / "args.json"),
+                                                  "extra_skills": json.loads(extra_skills),
+                                                  "hooks": list(hooks)}))
     env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}", ANTHROPIC_API_KEY="k",
-               FAKE_ARGS=str(tmp_path / "args.json"), FAKE_EXTRA_SKILLS=extra_skills)
+               CLAUDE_EFFORT="max")
     return subprocess.run([sys.executable, "-I", RUN, *args], env=env, capture_output=True, text=True)
 
 
@@ -84,7 +91,8 @@ def test_with_arm(tmp_path):
     args = json.load(open(tmp_path / "args.json"))
     assert args["cwd"] == str(work) and args["stdin"] == "hello"
     assert args["token"] == "tok-123" and args["api"] is None
-    assert args["cfg"] == str(out / "cfg")
+    assert args["cfg"] == str(out / "cfg") and args["home"] == os.environ["HOME"]
+    assert args["leak"] is None  # nothing from the calling session
     settings = json.load(open(out / "run-settings.json"))
     assert f"{tmp_path}/runs/with-1/CLAUDE.md" in settings["claudeMdExcludes"]
 
@@ -115,17 +123,50 @@ def test_plant_must_match_once(tmp_path):
 
 
 def test_keep_git(tmp_path):
+    """History kept; the plant and the skill leave no trace in git; the source's
+    own uncommitted work stays uncommitted; remote refs follow HEAD."""
     bin_dir, _, skill, _ = setup(tmp_path)
     src = tmp_path / "clone"
+    write(str(src / "PHASES.md"), "| 2 | build | active | |\n")
     write(str(src / "README.md"), "hi\n")
-    g = ["git", "-C", str(src), "-c", "user.name=a", "-c", "user.email=a@b"]
-    subprocess.run(["git", "init", "-q", str(src)], check=True)
+    g = ["git", "-C", str(src), "-c", "user.name=Real Author", "-c", "user.email=a@b"]
+    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
     subprocess.run(g + ["add", "-A"], check=True)
     subprocess.run(g + ["commit", "-q", "-m", "first real commit"], check=True)
+    subprocess.run(g + ["update-ref", "refs/remotes/origin/main", "HEAD"], check=True)
+    write(str(src / "README.md"), "hi, edited but not committed\n")
+    plant = tmp_path / "plant.json"
+    write(str(plant), json.dumps({"file": "PHASES.md", "find": "| active | |",
+                                  "replace": "| done | 2026-01-01 |"}))
     out = tmp_path / "runs/keep"
     r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(src), "--out", str(out),
-            "--prompt", "hi", "--skill", str(skill), "--keep-git")
+            "--prompt", "hi", "--skill", str(skill), "--keep-git", "--plant", str(plant))
     assert r.returncode == 0, r.stdout + r.stderr
-    log = subprocess.run(["git", "-C", str(out / "work"), "log", "--format=%s"],
-                         capture_output=True, text=True).stdout.split("\n")
-    assert log[:2] == ["lab copy", "first real commit"]
+    w = ["git", "-C", str(out / "work")]
+    q = lambda *x: subprocess.run(w + list(x), capture_output=True, text=True).stdout
+    assert q("log", "--format=%s|%an") == "first real commit|Real Author\n"
+    assert q("status", "--porcelain") == " M README.md\n"
+    assert "| done | 2026-01-01 |" in q("show", "HEAD:PHASES.md")
+    assert q("rev-parse", "HEAD") == q("rev-parse", "refs/remotes/origin/main")
+    assert q("reflog") == ""
+    assert json.load(open(out / "run.json"))["git"].startswith("kept")
+
+
+def test_hook_check(tmp_path):
+    """The fake makes 4 Read calls. Declared: one PreToolUse hook matching Read."""
+    bin_dir, snap, skill, _ = setup(tmp_path)
+    base = tmp_path / "base.json"
+    write(str(base), json.dumps({"hooks": {"PreToolUse": [
+        {"matcher": "Read|Bash", "hooks": [{"type": "command", "command": "guard"}]}]}}))
+    common = ["--arm", "without", "--src", str(snap), "--prompt", "hi", "--skill", str(skill),
+              "--base-settings", str(base)]
+    r = run(tmp_path, bin_dir, *common, "--out", str(tmp_path / "runs/h1"),
+            hooks=["PreToolUse:Read"] * 4)
+    assert r.returncode == 0, r.stdout + r.stderr
+    r = run(tmp_path, bin_dir, *common, "--out", str(tmp_path / "runs/h2"),
+            hooks=["PreToolUse:Read"] * 8)  # a second, undeclared hook on every Read
+    assert r.returncode == 1
+    r = run(tmp_path, bin_dir, *common, "--out", str(tmp_path / "runs/h3"), hooks=["SessionStart"])
+    assert r.returncode == 1
+    bad = json.load(open(tmp_path / "runs/h3/run.json"))["checks"]["undeclared_hooks"]
+    assert bad == ["SessionStart"]

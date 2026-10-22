@@ -4,8 +4,9 @@
   report.py <run folder>... [--title <text>]
 
 Each folder holds run.json (run.py), and optionally grade.json (grade.py) and
-format.json (format_check.py). The bar: every with-arm run scores at least
-7/8 and catches the planted claim.
+format.json (format_check.py). The bar: every with-arm run has a sound setup,
+scores at least 7/8 and catches the planted claim; an ungraded run counts as
+not passing.
 """
 import json
 import os
@@ -28,18 +29,26 @@ def main():
     args, title = sys.argv[1:], "Results"
     if "--title" in args:
         i = args.index("--title")
+        if i + 1 >= len(args):
+            sys.exit(__doc__)
         title = args[i + 1]
         del args[i:i + 2]
     if not args:
         sys.exit(__doc__)
+    missing = [d for d in args if not os.path.isfile(os.path.join(d, "run.json"))]
+    if missing:
+        sys.exit(f"report: no run.json in: {', '.join(missing)}")
     rows = []
     for d in args:
         run, grade, form = load(d, "run.json"), load(d, "grade.json"), load(d, "format.json")
         m = run.get("metrics", {})
         rows.append({
-            "run": os.path.basename(os.path.normpath(d)), "arm": run.get("arm"),
+            "run": os.path.basename(os.path.normpath(d)), "arm": run.get("arm") or "–",
             "setup_ok": run.get("ok"), "score": grade.get("score"),
-            "caught": grade.get("planted_claim_caught"), "passes": grade.get("passes_bar"),
+            "caught": grade.get("planted_claim_caught"),
+            "passes": bool(run.get("ok") and grade.get("passes_bar")),
+            "graded": bool(grade.get("ok")), "denials": m.get("permission_denials"),
+            "outside": len(m.get("outside_paths") or []),
             "format_ok": form.get("ok"), "turns": m.get("num_turns"),
             "tools": m.get("tool_calls"), "sub_tools": m.get("tool_calls_subagents"),
             "in": m.get("input_tokens"), "out": m.get("output_tokens"),
@@ -51,24 +60,26 @@ def main():
     yn = {True: "yes", False: "no", None: "–"}
     print(f"# {title}\n")
     print("| run | arm | setup ok | score /8 | claim caught | passes bar | format ok | turns "
-          "| tool calls (subagent) | input | output | cache write | cache read | seconds |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+          "| tool calls (subagent) | denied | outside paths | input | output | cache write "
+          "| cache read | seconds |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for r in rows:
         print(f"| {r['run']} | {r['arm']} | {yn[r['setup_ok']]} | {fmt(r['score'])} "
               f"| {yn[r['caught']]} | {yn[r['passes']]} | {yn[r['format_ok']]} | {fmt(r['turns'])} "
-              f"| {fmt(r['tools'])} ({fmt(r['sub_tools'])}) | {fmt(r['in'])} | {fmt(r['out'])} "
+              f"| {fmt(r['tools'])} ({fmt(r['sub_tools'])}) | {fmt(r['denials'])} | {fmt(r['outside'])} "
+              f"| {fmt(r['in'])} | {fmt(r['out'])} "
               f"| {fmt(r['cache_w'])} | {fmt(r['cache_r'])} | {fmt(r['secs'], 1)} |")
 
-    print("\n| arm | runs | mean score | claim caught | passes bar | mean turns "
+    print("\n| arm | runs | graded | mean score | claim caught | passes bar | mean turns "
           "| mean tool calls | mean output tokens | mean seconds |")
-    print("|---|---|---|---|---|---|---|---|---|")
+    print("|---|---|---|---|---|---|---|---|---|---|")
     for arm in ("with", "without"):
         rs = [r for r in rows if r["arm"] == arm]
         if not rs:
             continue
         avg = lambda k: mean(r[k] for r in rs if r[k] is not None) if any(
             r[k] is not None for r in rs) else None
-        print(f"| {arm} | {len(rs)} | {fmt(avg('score'), 1)} "
+        print(f"| {arm} | {len(rs)} | {sum(1 for r in rs if r['graded'])} | {fmt(avg('score'), 1)} "
               f"| {sum(1 for r in rs if r['caught'])}/{len(rs)} "
               f"| {sum(1 for r in rs if r['passes'])}/{len(rs)} | {fmt(avg('turns'), 1)} "
               f"| {fmt(avg('tools'), 1)} | {fmt(avg('out'))} | {fmt(avg('secs'), 1)} |")
