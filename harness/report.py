@@ -62,7 +62,7 @@ def note_reads(d):
             for m in re.finditer(re.escape(NOTES) + r"([\w.\-]*)", text):
                 if m.group(1) == "INDEX.md":
                     index = True
-                elif m.group(1).endswith(".md"):
+                elif m.group(1):  # a note's name, or a glob for one (2026-10-23-*.md)
                     note = True
     return index, note
 

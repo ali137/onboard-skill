@@ -63,6 +63,13 @@ def test_speed_bar_medians_tokens_and_note_reads(tmp_path):
     assert "| walk-cold | 3 | 0 |" in out and "| 3/3 | 31.0 | 30.0 | 2,000 |" in out
 
 
+def test_note_read_through_a_glob_but_not_a_folder_listing(tmp_path):
+    out = report(make(tmp_path, "x-note-1", fixed=True, reads=["w/team/experience/2026-10-23-*.md"]),
+                 make(tmp_path, "x-note-2", fixed=True, reads=["w/team/experience/", "w/team/experience"]))
+    assert "| x-note-1 | with | yes | – | – | – | – | yes | passed | 0 | no | yes |" in out
+    assert "| x-note-2 | with | yes | – | – | – | – | yes | passed | 0 | no | no |" in out
+
+
 def test_speed_bar_fails_on_an_unfixed_note_run(tmp_path):
     out = report(make(tmp_path, "b-cold-1", tools=40, fixed=True),
                  make(tmp_path, "b-note-1", tools=10, tokens=(0, 0, 1), fixed=False))
