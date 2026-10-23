@@ -294,6 +294,49 @@ def test_note_from_is_copied_untracked_and_allow_rules(tmp_path):
     assert r.returncode != 0 and "has no team/experience/" in r.stderr
 
 
+def test_note_from_into_a_ground_that_ships_notes(tmp_path):
+    """A ground can ship notes in team/experience/. --note-from then copies only the
+    notes the earlier copy added and appends its new INDEX.md lines; the shipped
+    notes stay as they are (even if the earlier copy edited one), the new INDEX
+    lines are folded into HEAD, and git status and diff stay clean."""
+    bin_dir, _, skill, _ = setup(tmp_path)
+    src = tmp_path / "ground"
+    index = "# Experience notes\n\n- 2026-01-01 · old · app.py · team/experience/old.md\n"
+    write(str(src / "app.py"), "x = 1\n")
+    write(str(src / "team/experience/INDEX.md"), index)
+    write(str(src / "team/experience/old.md"), "shipped\n")
+    g = ["git", "-C", str(src), "-c", "user.name=A", "-c", "user.email=a@b"]
+    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
+    subprocess.run(g + ["add", "-A"], check=True)
+    subprocess.run(g + ["commit", "-q", "-m", "first"], check=True)
+    cold = tmp_path / "runs/cold-1/work"
+    line = "- 2026-02-02 · new · app.py · team/experience/new.md"
+    write(str(cold / "team/experience/INDEX.md"), index + line + "\n")
+    write(str(cold / "team/experience/old.md"), "edited by the cold run\n")
+    write(str(cold / "team/experience/new.md"), f"| files | {cold}/app.py |\n")
+    out = tmp_path / "runs/note-1"
+    r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(src), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), "--keep-git", "--note-from", str(cold))
+    assert r.returncode == 0, r.stdout + r.stderr
+    work = out / "work"
+    assert open(work / "team/experience/old.md").read() == "shipped\n"
+    assert open(work / "team/experience/new.md").read() == f"| files | {work}/app.py |\n"
+    assert open(work / "team/experience/INDEX.md").read() == index + line + "\n"
+    q = lambda *x: subprocess.run(["git", "-C", str(work), *x], capture_output=True, text=True).stdout
+    assert q("status", "--porcelain") == ""
+    assert q("diff", "HEAD") == ""
+    assert q("log", "--format=%s") == "first\n"
+    assert line in q("show", "HEAD:team/experience/INDEX.md")
+    assert json.load(open(out / "run.json"))["notes"] == ["team/experience/INDEX.md",
+                                                         "team/experience/new.md"]
+    bare = tmp_path / "runs/cold-2/work"  # a cold run that only edited a shipped note
+    write(str(bare / "team/experience/old.md"), "edited\n")
+    r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(src), "--out",
+            str(tmp_path / "runs/note-2"), "--prompt", "hi", "--skill", str(skill),
+            "--keep-git", "--note-from", str(bare))
+    assert r.returncode != 0 and "added no notes" in r.stderr
+
+
 def test_every_result_event_counts(tmp_path):
     """A session that ends its reply while a background task runs goes on and emits
     another result: turns, time, tokens and denials sum over all; cost and API time are

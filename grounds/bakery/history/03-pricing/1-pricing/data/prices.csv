@@ -1,0 +1,11 @@
+sku,name,unit_price,tax_category
+sourdough-loaf,Sourdough loaf,5.80,reduced
+rye-loaf,Rye loaf,5.20,reduced
+baguette,Baguette,2.60,reduced
+croissant,Croissant,2.30,reduced
+pain-au-chocolat,Pain au chocolat,2.70,reduced
+cinnamon-bun,Cinnamon bun,3.10,reduced
+sesame-roll,Sesame roll,1.50,reduced
+birthday-cake,Birthday cake,32.00,reduced
+filter-coffee,Filter coffee,2.80,standard
+delivery-fee,Delivery fee,4.50,standard

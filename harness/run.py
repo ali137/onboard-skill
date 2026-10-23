@@ -14,9 +14,10 @@ Builds <out>/work, a writable copy of --src:
   - --prepare runs a command on the copy (its path added as the last argument),
     for example to seed a bug; its output goes to <out>/prepare.log;
   - the "with" arm gets the skill in .claude/skills/<name>/;
-  - --note-from copies an earlier run copy's team/experience/ (its notes and
-    INDEX.md) into the copy, with that copy's path rewritten to this one; the
-    files stay untracked;
+  - --note-from copies the notes an earlier run copy added to team/experience/
+    (files this copy does not have; the ground's own notes stay as they are)
+    and appends its new INDEX.md lines, with that copy's path rewritten to this
+    one; added files stay untracked, a tracked INDEX.md is folded into HEAD;
   - git: none, like a source without git (git does not look above <out>); with
     --keep-git, the source's history, with the harness's changes (rewrites,
     plants, --prepare, the skill, --note-from) hidden in it (see keep_history).
@@ -137,33 +138,57 @@ NOTES = "team/experience"
 
 
 def copy_notes(src_copy, work):
-    """Copy an earlier run copy's experience notes in, pointing them at this copy."""
+    """Copy the experience notes an earlier run copy added into this copy, pointing them
+    at this copy. Added means: files under team/experience/ this copy does not have (the
+    ground may ship notes; those stay as they are, even if the earlier copy edited them),
+    plus INDEX.md lines this copy's INDEX.md lacks, appended in order. Returns the paths
+    written."""
     src_copy = os.path.realpath(src_copy)
     src, dest = f"{src_copy}/{NOTES}", f"{work}/{NOTES}"
     if not os.path.isdir(src):
         sys.exit(f"run: --note-from has no {NOTES}/: {src_copy}")
-    if os.path.lexists(dest):
-        sys.exit(f"run: the copy already has {NOTES}/; --note-from would mix notes")
-    shutil.copytree(src, dest)
-    rewrite_paths(dest, src_copy, work)
-    return sorted(os.path.relpath(os.path.join(d, f), work)
-                  for d, _, fs in os.walk(dest) for f in fs)
+    written = []
+    for d, _, fs in os.walk(src):
+        for f in sorted(fs):
+            rel = os.path.relpath(os.path.join(d, f), src)
+            to = os.path.join(dest, rel)
+            if rel == "INDEX.md" and os.path.isfile(to):
+                have = open(to, encoding="utf-8").read()
+                new = [l for l in open(os.path.join(d, f), encoding="utf-8").read().splitlines()
+                       if l.strip() and l not in have.splitlines()]
+                if new:
+                    with open(to, "a", encoding="utf-8") as fh:
+                        fh.write(("" if have.endswith("\n") or not have else "\n") + "\n".join(new) + "\n")
+                    written.append(to)
+            elif not os.path.lexists(to):
+                os.makedirs(os.path.dirname(to), exist_ok=True)
+                shutil.copy2(os.path.join(d, f), to)
+                written.append(to)
+    if not [p for p in written if os.path.basename(p) != "INDEX.md"]:
+        sys.exit(f"run: --note-from added no notes: {src_copy} has none this copy lacks")
+    for p in written:
+        text = open(p, encoding="utf-8").read()
+        if src_copy in text:
+            open(p, "w", encoding="utf-8").write(text.replace(src_copy, work))
+    return sorted(os.path.relpath(p, work) for p in written)
 
 
-def keep_history(work, rewritten, planted, skill_name, arm, notes=False):
+def keep_history(work, rewritten, planted, skill_name, arm, notes=()):
     """With the source's history kept, hide what the harness changed: the skill and
-    copied notes are git-excluded (untracked, unseen), and rewritten or planted tracked files are
-    folded into HEAD with its own author, date and message; refs that pointed at
-    the old HEAD follow it, and the reflog is cleared. The source's own uncommitted
-    work stays uncommitted."""
+    copied notes are git-excluded (untracked, unseen), and rewritten, planted or
+    note-appended tracked files are folded into HEAD with its own author, date and
+    message; refs that pointed at the old HEAD follow it, and the reflog is cleared.
+    The source's own uncommitted work stays uncommitted."""
     g = ["git", "-C", work]
     if arm == "with":
         with open(f"{work}/.git/info/exclude", "a") as f:
             f.write(f"\n/.claude/skills/{skill_name}/\n")
+    notes_tracked = subprocess.run(g + ["ls-files", "--", *notes], capture_output=True,
+                                   text=True, check=True).stdout.split() if notes else []
     if notes:
         with open(f"{work}/.git/info/exclude", "a") as f:
-            f.write(f"\n/{NOTES}/\n")
-    paths = sorted(set(rewritten) | set(planted))
+            f.write("".join(f"\n/{p}" for p in notes if p not in notes_tracked) + "\n")
+    paths = sorted(set(rewritten) | set(planted) | set(notes_tracked))
     tracked = subprocess.run(g + ["ls-files", "--", *paths], capture_output=True,
                              text=True, check=True).stdout.split() if paths else []
     if not tracked:
@@ -410,7 +435,7 @@ def main():
         shutil.copytree(a.skill, f"{work}/.claude/skills/{skill_name}")
     notes = copy_notes(a.note_from, work) if a.note_from else []
     git_mode = keep_history(work, rewritten, planted + prepared, skill_name, a.arm,
-                            bool(notes)) if a.keep_git else "none"
+                            notes) if a.keep_git else "none"
 
     os.makedirs(cfg)
     settings = json.load(open(a.base_settings)) if a.base_settings else {}

@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""Seed or restore a bug in a copy of the bakery ground, or prove each bug.
+
+  seed.py <copy> --bug <id>              seed: put the bug into the clean code
+  seed.py <copy> --bug <id> --restore    take it out again
+  seed.py <copy> --prove [--bug <id>]    test file green, seed, named test red, restore, green
+  seed.py <copy> --bug <id> --check [--out <json>]
+                                         is it fixed? the bug's whole test file runs;
+                                         prints (and writes) the named tests' status
+                                         (named_status: passed only if all passed)
+                                         and every failure; exit 0 fixed, 1 not
+
+A copy is a folder build.py made, or any copy of one. Bugs are listed in
+ground.json: each is one text replacement ("find" becomes "replace") in one
+file, made on top of the clean code (run.py --prepare folds the seeded file
+into HEAD). The bugs without a note were never in the history; the two with a
+note bring back a bug whose fix commit and note the history keeps. Fixed means every named test passed
+and nothing in the bug's test file failed. --prove must start unseeded and
+restores the copy even when stopped part way. Exit codes: 0 done or proved,
+1 an error or a failed proof, 2 a usage error.
+"""
+import argparse
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import xml.etree.ElementTree as ET
+
+GROUND = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ground.json")))
+
+
+def state(copy, bug_id):
+    """'clean', 'seeded', or None when the file matches neither."""
+    bug = GROUND["bugs"][bug_id]
+    text = open(os.path.join(copy, bug["file"]), encoding="utf-8").read()
+    clean, seeded = text.count(bug["find"]), text.count(bug["replace"])
+    return "clean" if (clean, seeded) == (1, 0) else "seeded" if (clean, seeded) == (0, 1) else None
+
+
+def apply(copy, bug_id, restore=False):
+    bug = GROUND["bugs"][bug_id]
+    want = "seeded" if restore else "clean"
+    now = state(copy, bug_id)
+    if now != want:
+        sys.exit(f"seed: {bug_id} does not {'restore' if restore else 'seed'} cleanly in {copy} "
+                 f"({now or 'its code differs from the ground'})")
+    path = os.path.join(copy, bug["file"])
+    text = open(path, encoding="utf-8").read()
+    old, new = (bug["replace"], bug["find"]) if restore else (bug["find"], bug["replace"])
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text.replace(old, new))
+    return bug["file"]
+
+
+def run_tests(copy, bug):
+    """The bug's test file as [(test name, 'passed' | 'failed' | 'skipped', message)]."""
+    with tempfile.TemporaryDirectory() as t:
+        out = os.path.join(t, "r.xml")
+        p = subprocess.run(GROUND["test_command"] + [bug["test"], "-q", f"--junitxml={out}"],
+                           cwd=copy, capture_output=True, text=True,
+                           env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+        if not os.path.isfile(out):
+            sys.exit(f"seed: pytest wrote no report for {bug['test']} ({p.stdout.strip()[-300:]} "
+                     f"{p.stderr.strip()[-300:]})")
+        tests = []
+        for case in ET.parse(out).iter("testcase"):
+            bad = case.find("failure") if case.find("failure") is not None else case.find("error")
+            status = ("failed" if bad is not None else
+                      "skipped" if case.find("skipped") is not None else "passed")
+            msg = (bad.get("message") or bad.text or "")[:800] if bad is not None else ""
+            tests.append((case.get("name"), status, msg))
+        if p.returncode not in (0, 1) and not tests:  # collection error, usage error
+            tests.append(("(collection)", "failed", (p.stdout + p.stderr).strip()[-800:]))
+        return tests
+
+
+def summarize(copy, bug_id):
+    bug = GROUND["bugs"][bug_id]
+    tests = run_tests(copy, bug)
+    named = {n: [s for t, s, _ in tests if t == n] for n in bug["test_names"]}
+    named = {n: s[0] if len(s) == 1 else f"found {len(s)} times" for n, s in named.items()}
+    failed = [{"test": t, "message": m} for t, s, m in tests if s == "failed"]
+    status = ("passed" if all(s == "passed" for s in named.values()) else "failed"
+              if "failed" in named.values() else next(iter(named.values())))
+    return {"bug": bug_id, "test_file": bug["test"], "named_tests": named, "named_status": status,
+            "tests": len(tests),
+            "passed": sum(1 for _, s, _ in tests if s == "passed"), "failed": failed,
+            "fixed": status == "passed" and not failed and bool(tests)}
+
+
+def prove(copy, ids):
+    ok = True
+    for bug_id in ids:
+        steps = []
+        try:
+            for label, action in (("clean", None), ("seeded", False), ("restored", True)):
+                if action is not None:
+                    apply(copy, bug_id, restore=action)
+                r = summarize(copy, bug_id)
+                names = ", ".join(f"{n} {s}" for n, s in r["named_tests"].items())
+                steps.append(f"{label}: {names}; file {r['passed']}/{r['tests']} passed"
+                             + (f" (failing: {sorted(f['test'] for f in r['failed'])})" if r["failed"] else ""))
+                if label == "seeded":
+                    ok &= all(s == "failed" for s in r["named_tests"].values())
+                else:
+                    ok &= r["fixed"]
+        finally:
+            print(f"{bug_id}: " + "; ".join(steps), flush=True)
+            if state(copy, bug_id) == "seeded":  # stopped while seeded: take the bug out
+                apply(copy, bug_id, restore=True)
+                print(f"{bug_id}: stopped while seeded; restored", flush=True)
+    return ok
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("copy")
+    ap.add_argument("--bug", choices=sorted(GROUND["bugs"]))
+    ap.add_argument("--restore", action="store_true")
+    ap.add_argument("--prove", action="store_true")
+    ap.add_argument("--check", action="store_true", help="is the bug fixed in the copy?")
+    ap.add_argument("--out", help="with --check: also write the result here")
+    a = ap.parse_args()
+    copy = os.path.abspath(a.copy)
+    if not os.path.isdir(copy):
+        sys.exit(f"seed: {copy} does not exist")
+    if a.prove:
+        if a.restore:
+            ap.error("--restore does not go with --prove")
+        sys.exit(0 if prove(copy, [a.bug] if a.bug else sorted(GROUND["bugs"])) else 1)
+    if not a.bug:
+        ap.error("--bug is required unless --prove")
+    if a.check:
+        r = summarize(copy, a.bug)
+        if a.out:
+            json.dump(r, open(a.out, "w"), indent=2)
+        print(json.dumps(r, indent=2))
+        sys.exit(0 if r["fixed"] else 1)
+    f = apply(copy, a.bug, restore=a.restore)
+    print(f"seed: {a.bug} {'restored' if a.restore else 'seeded'} in {f}")
+
+
+if __name__ == "__main__":
+    main()

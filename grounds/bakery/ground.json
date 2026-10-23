@@ -1,0 +1,52 @@
+{
+  "test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "bugs": {
+    "rounding": {
+      "file": "bakery/pricing.py",
+      "find": "    with localcontext() as ctx:\n        ctx.rounding = ROUND_HALF_UP\n        return amount.quantize(CENT)\n",
+      "replace": "    with localcontext() as ctx:\n        ctx.rounding = ROUND_HALF_UP\n    return amount.quantize(CENT)\n",
+      "test": "tests/test_pricing.py",
+      "test_names": [
+        "test_wholesale_discount_rounds_half_up"
+      ],
+      "note": null
+    },
+    "closed-day": {
+      "file": "bakery/delivery.py",
+      "find": "    return day.weekday() != CLOSED_WEEKDAY and day not in closures\n",
+      "replace": "    return day.isoweekday() != CLOSED_WEEKDAY and day not in closures\n",
+      "test": "tests/test_delivery.py",
+      "test_names": [
+        "test_friday_morning_order_delivers_saturday",
+        "test_late_friday_order_skips_sunday"
+      ],
+      "note": null
+    },
+    "recipe-alias": {
+      "file": "bakery/inventory.py",
+      "find": "    need = copy.deepcopy(RECIPES[sku])\n",
+      "replace": "    need = copy.copy(RECIPES[sku])\n",
+      "test": "tests/test_inventory.py",
+      "test_names": [
+        "test_second_order_reserves_only_its_own_quantity"
+      ],
+      "note": "team/experience/2026-10-14-reservations-grow-after-orders.md"
+    },
+    "tax-per-line": {
+      "file": "bakery/invoices.py",
+      "find": "    nets = defaultdict(Decimal)\n    for line in lines:\n        nets[line.tax_rate] += line.net\n    return {rate: round_cents(net * rate) for rate, net in sorted(nets.items())}\n",
+      "replace": "    taxes = defaultdict(Decimal)\n    for line in lines:\n        taxes[line.tax_rate] += round_cents(line.net * line.tax_rate)\n    return dict(sorted(taxes.items()))\n",
+      "test": "tests/test_invoices.py",
+      "test_names": [
+        "test_tax_is_per_rate_on_the_net_total"
+      ],
+      "note": "team/experience/2026-10-15-invoice-tax-a-cent-high.md"
+    }
+  }
+}

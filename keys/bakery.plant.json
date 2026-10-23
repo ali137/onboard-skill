@@ -1,0 +1,5 @@
+{
+  "file": "PHASES.md",
+  "find": "| 8 | Holiday pre-orders | active | sessions/PHASE-08-holiday-preorders.md | |",
+  "replace": "| 8 | Holiday pre-orders | done | sessions/PHASE-08-holiday-preorders.md | 2026-10-21 |"
+}
