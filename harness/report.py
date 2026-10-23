@@ -13,7 +13,8 @@ Tokens: "tokens" is input + output + cache-creation tokens (cache reads are
 shown but not summed: they dominate and are cheap). Watch hits are split: a
 hit whose tool call names team/experience/, or a subagent's prompt holding a
 watch string (a hand-down), came through a note; any other is a leak (git
-history, changelog).
+history, changelog). Bug runs also show their git-history Bash calls and how
+many of those hit a watch string (run.json from harness 2026-10-23 on).
 
 Bars:
 - onboarding, per graded with-arm condition: every run has a sound
@@ -91,6 +92,8 @@ def row(d):
         "fixed": fixed.get("fixed") if fixed else None,
         "named": fixed.get("named_status"), "failed_tests": len(fixed.get("failed") or []) if fixed else None,
         "watch_leak": len(hits) - via_note if run else None, "watch_note": via_note if run else None,
+        "history": len(m["git_history_calls"]) if "git_history_calls" in m else None,
+        "history_hits": sum(1 for h in hits if h.get("git_history")) if "git_history_calls" in m else None,
         "index_read": index_read, "note_read": note_read, "notes_given": bool(run.get("notes")),
         "prompts": len(m["subagent_prompts"]) if "subagent_prompts" in m else None,
         "note_in_prompt": any(p["watch_in_prompt"] for p in m["subagent_prompts"])
@@ -139,17 +142,19 @@ def main():
     print(f"# {a.title}\n")
     print("| run | arm | setup ok | score /8 | claim caught | passes bar | format ok "
           + ("| fixed | named test | failing tests | index read | note read | watch hits: leak / note "
+             "| git history calls / with a watch hit "
              if bug_runs else "")
           + ("| subagent prompts | note path in a prompt | edits: main / subagent " if hand else "")
           + "| turns | tool calls (subagent) | denied | outside paths | input | output | cache write "
             "| cache read | tokens | seconds |")
-    print("|---" * (17 + (6 if bug_runs else 0) + (3 if hand else 0)) + "|")
+    print("|---" * (17 + (7 if bug_runs else 0) + (3 if hand else 0)) + "|")
     for r in rows:
         print(f"| {r['run']} | {r['arm']} | {yn[r['setup_ok']]} | {fmt(r['score'])} "
               f"| {yn[r['caught']]} | {yn[r['passes']]} | {yn[r['format_ok']]} "
               + (f"| {yn[r['fixed']]} | {fmt(r['named'])} | {fmt(r['failed_tests'])} "
                  f"| {yn[r['index_read']]} | {yn[r['note_read']]} "
-                 f"| {fmt(r['watch_leak'])} / {fmt(r['watch_note'])} " if bug_runs else "")
+                 f"| {fmt(r['watch_leak'])} / {fmt(r['watch_note'])} "
+                 f"| {fmt(r['history'])} / {fmt(r['history_hits'])} " if bug_runs else "")
               + (f"| {fmt(r['prompts'])} | {yn[r['note_in_prompt']]} "
                  f"| {fmt(r['edits_main'])} / {fmt(r['edits_sub'])} " if hand else "")
               + f"| {fmt(r['turns'])} | {fmt(r['tools'])} ({fmt(r['sub_tools'])}) | {fmt(r['denials'])} "

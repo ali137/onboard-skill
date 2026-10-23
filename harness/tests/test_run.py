@@ -206,6 +206,7 @@ def test_prepare_is_folded_and_git_reads_recorded(tmp_path):
     hits = rec["metrics"]["watch_hits"]
     assert [(h["in_input"], h["in_result"]) for h in hits] == [
         ([], ["abc123", "fix: the subject"]), (["abc123"], [])]
+    assert [h["git_history"] for h in hits] == [True, True]
     bad = tmp_path / "runs/bad"
     r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(src), "--out", str(bad),
             "--prompt", "hi", "--skill", str(skill), "--prepare", "false")

@@ -8,7 +8,7 @@ REPORT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 
 
 def make(root, name, arm="with", tools=10, tokens=(1, 9, 90), grade=None, fixed=None,
-         hits=(), reads=(), prompts=None, edits=(0, 0)):
+         hits=(), reads=(), prompts=None, edits=(0, 0), history=None):
     d = root / name
     d.mkdir(parents=True)
     m = {"tool_calls": tools, "tool_calls_subagents": 0, "num_turns": tools + 1,
@@ -16,6 +16,8 @@ def make(root, name, arm="with", tools=10, tokens=(1, 9, 90), grade=None, fixed=
          "cache_creation_input_tokens": tokens[2], "cache_read_input_tokens": 5000,
          "duration_ms": tools * 1000, "permission_denials": 0, "outside_paths": [],
          "watch_hits": [h if isinstance(h, dict) else {"input": h} for h in hits]}
+    if history is not None:
+        m["git_history_calls"] = history
     if prompts is not None:
         m.update(subagent_prompts=[{"prompt": "p", "watch_in_prompt": w} for w in prompts],
                  edits_main=edits[0], edits_subagents=edits[1])
@@ -66,6 +68,18 @@ def test_speed_bar_medians_tokens_and_note_reads(tmp_path):
     assert "| walk-cold | 3 | 0 | – | – | – | 3/3 | 31.0 | 30.0 | 2,000 |" in out
 
 
+def test_git_history_calls_and_their_watch_hits(tmp_path):
+    out = report(make(tmp_path, "r-cold-1", fixed=True, history=["git log", "git show HEAD"],
+                      hits=[{"tool": "Bash", "input": "git show HEAD", "git_history": True},
+                            {"tool": "Read", "input": "x.py", "git_history": False}]),
+                 make(tmp_path, "r-cold-2", fixed=True, history=[]),
+                 make(tmp_path, "r-cold-3", fixed=True))
+    assert "| git history calls / with a watch hit |" in out
+    assert "| 2 / 0 | 2 / 1 |" in out.split("| r-cold-1 |")[1].split("\n")[0]
+    assert "| 0 / 0 | 0 / 0 |" in out.split("| r-cold-2 |")[1].split("\n")[0]
+    assert "| 0 / 0 | – / – |" in out.split("| r-cold-3 |")[1].split("\n")[0]
+
+
 def test_a_rise_reads_higher(tmp_path):
     cold = [make(tmp_path, f"b-cold-{i}", tools=10, tokens=(0, 0, 100), fixed=True) for i in (1, 2)]
     note = [make(tmp_path, f"b-note-{i}", tools=12, tokens=(0, 0, 50), fixed=True) for i in (1, 2)]
@@ -97,7 +111,7 @@ def test_handdown_bar(tmp_path):
     assert "Hand-down, handdown:** passed. Fixed: 2/2; a subagent edited: 2/2; " \
            "the note path in a subagent's prompt: 2/2." in out
     assert "| handdown-1 | with | yes |" in out and "| 2 | yes | 0 / 2 |" in out
-    assert "| 0 / 2 | 2 | yes | 0 / 2 |" in out  # watch hits leak / note, prompts, note, edits
+    assert "| 0 / 2 | – / – | 2 | yes | 0 / 2 |" in out  # watch hits, history, prompts, note, edits
     assert "Onboarding bar" not in out
     bad = [make(tmp_path, "b/handdown-1", fixed=True, prompts=[[]], edits=(0, 1)),
            make(tmp_path, "b/handdown-2", fixed=True, prompts=[note], edits=(3, 0)),

@@ -287,15 +287,16 @@ GIT_HISTORY = re.compile(r"(?:^|\s)git(?:\s+-[Cc]\s+\S+|\s+--?[\w.-]+(?:=\S+)?)*
                          r"\s+(log|show|blame|reflog|rev-list|whatchanged|cat-file|fsck)\b")
 
 
+def reads_history(name, inp):
+    """A Bash command with a part (split on ; && || | and newlines) that reads git history."""
+    cmd = (inp or {}).get("command", "") if name == "Bash" else ""
+    return any(GIT_HISTORY.search(part) for part in re.split(r";|&&|\|\||\||\n", cmd))
+
+
 def git_history_calls(calls):
-    """Bash commands with a part (split on ; && || | and newlines) that reads git
-    history. A seeded bug's fix is in the history, so these show where a run looked."""
-    out = []
-    for name, _, inp in calls.values():
-        cmd = (inp or {}).get("command", "") if name == "Bash" else ""
-        if any(GIT_HISTORY.search(part) for part in re.split(r";|&&|\|\||\||\n", cmd)):
-            out.append(cmd)
-    return out
+    """Bash commands that read git history. A seeded bug's fix is in the history,
+    so these show where a run looked."""
+    return [inp["command"] for name, _, inp in calls.values() if reads_history(name, inp)]
 
 
 def tool_results(events):
@@ -321,7 +322,7 @@ def watch_hits(calls, results, watch):
         found_out = [w for w in watch if w in text_out]
         if found_in or found_out:
             hits.append({"tool": name, "input": text_in[:300], "in_input": found_in,
-                         "in_result": found_out})
+                         "in_result": found_out, "git_history": reads_history(name, inp)})
     return hits
 
 
