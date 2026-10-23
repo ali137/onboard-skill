@@ -1,0 +1,6 @@
+station,start_utc,end_utc,note
+MF02,2025-11-18T09:00:00Z,2025-11-18T13:30:00Z,sensor cleaned after silt buildup
+KW03,2025-12-10T10:00:00Z,2025-12-11T16:00:00Z,logger pulled for battery and seal replacement
+OL05,2026-01-21T08:30:00Z,2026-01-21T12:00:00Z,stilling well flushed
+HB01,2026-02-24T09:15:00Z,2026-02-24T11:45:00Z,staff gauge check against logger
+TC04,2026-08-12T07:00:00Z,2026-08-12T10:00:00Z,weed cleared from the intake

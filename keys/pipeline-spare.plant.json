@@ -1,0 +1,5 @@
+{
+  "file": "AGENTS.md",
+  "find": "One test file: python3 -m pytest -p no:cacheprovider tests/test_<module>.py",
+  "replace": "One test file: tools/test-one.sh tests/test_<module>.py"
+}

@@ -1,0 +1,5 @@
+{
+  "file": "PHASES.md",
+  "find": "- [ ] 8.3 Rate-of-rise alerts (alerts role; open since Tolliver moved on 2026-10-16): not started.",
+  "replace": "- [ ] 8.3 Rate-of-rise alerts (alerts role; open since Tolliver moved on 2026-10-16): `alerts.rate_of_rise()` and its tests are in; only the winter replay is left."
+}

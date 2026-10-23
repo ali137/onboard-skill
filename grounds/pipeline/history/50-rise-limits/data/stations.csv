@@ -1,0 +1,6 @@
+id,name,river,logger,utc_offset,unit,datum_mm,warn_mm,severe_mm,clear_margin_mm,spike_mm,rise_mm_per_h,rating
+KW03,Kestle Weir,Kestle Brook,Velcor,+00:00,cm,0,1600,2100,100,300,150,KW03-2021
+HB01,Hollinby Bridge,River Brindle,Amsel,+00:00,mm,0,2400,3000,150,,,HB01-2018
+MF02,Marrow Ford,River Brindle,Velcor,+01:00,cm,0,1900,2500,100,250,120,
+TC04,Tansey Cut,River Brindle,Amsel,+00:00,mm,0,1200,1600,80,,,TC04-2019
+OL05,Orley Lock,River Brindle,Velcor,+01:00,cm,150,2800,3400,150,,100,

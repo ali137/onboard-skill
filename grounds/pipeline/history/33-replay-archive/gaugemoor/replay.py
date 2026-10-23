@@ -1,0 +1,71 @@
+"""Replaying archived readings through the alert rules.
+
+Used to check an alert rule against a past winter: every station's archived
+readings are screened, merged into one time order, and run through
+alerts.evaluate as if they arrived live; each alert is appended to the
+outbox.
+"""
+from datetime import datetime, timezone
+from pathlib import Path
+
+from gaugemoor import alerts, clean, dedupe, ingest, outbox
+from gaugemoor.normalize import normalize
+from gaugemoor.stations import load as load_stations
+
+
+def load_archive(directory, stations) -> dict[str, list]:
+    """Every logger file under `directory`, merged as a batch would (D6), by station."""
+    store: dict = {}
+    for path in sorted(Path(directory).rglob("*")):
+        if not path.is_file() or path.name.startswith("."):
+            continue
+        received = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        rows, _ = ingest.parse(ingest.Drop(path.name, path.read_bytes(), received))
+        dedupe.merge(store, normalize(rows, stations))
+    return dedupe.by_station(store)
+
+
+def replay(readings_by_station, stations, *, dry_run=False) -> list:
+    """Run the alert rules over archived readings in time order; returns the alerts.
+
+    Every alert is appended to the outbox, as a dry-run record when `dry_run`.
+    """
+    events = []
+    for station_id, readings in readings_by_station.items():
+        station = stations[station_id]
+        for reading in clean.screen(station, readings):
+            events.append((reading.ts, station.id, reading))
+    events.sort(key=lambda event: (event[0], event[1]))
+    state = alerts.AlertState()
+    raised = []
+    with outbox.open_outbox() as fh:
+        for _, station_id, reading in events:
+            for alert in alerts.evaluate(stations[station_id], [reading], state):
+                outbox.append(fh, alert, dry_run=dry_run)
+                raised.append(alert)
+    return raised
+
+
+def count_by_kind(raised) -> dict[str, int]:
+    """How many alerts of each kind a replay raised, for the summary line."""
+    counts: dict[str, int] = {}
+    for alert in raised:
+        counts[alert.kind] = counts.get(alert.kind, 0) + 1
+    return counts
+
+
+def add_arguments(parser) -> None:
+    """The replay subcommand's arguments; cli.py builds the parser around them."""
+    parser.add_argument("archive", help="folder of logger files, e.g. var/archive/2025-26")
+    parser.add_argument("--dry-run", action="store_true", help="write dry-run records")
+
+
+def run(args) -> int:
+    """The replay subcommand: load the archive, replay it, print a summary."""
+    stations = load_stations()
+    readings = load_archive(args.archive, stations)
+    raised = replay(readings, stations, dry_run=args.dry_run)
+    counts = count_by_kind(raised)
+    summary = ", ".join(f"{counts[k]} {k}" for k in sorted(counts)) or "no alerts"
+    print(f"replay: {summary}")
+    return 0

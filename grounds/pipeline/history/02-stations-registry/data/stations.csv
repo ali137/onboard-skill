@@ -1,0 +1,6 @@
+id,name,river,logger,utc_offset,unit,datum_mm,spike_mm
+KW03,Kestle Weir,Kestle Brook,Velcor,+00:00,cm,0,300
+HB01,Hollinby Bridge,River Brindle,Amsel,+00:00,mm,0,
+MF02,Marrow Ford,River Brindle,Velcor,+01:00,cm,0,250
+TC04,Tansey Cut,River Brindle,Amsel,+00:00,mm,0,
+OL05,Orley Lock,River Brindle,Velcor,+01:00,cm,150,

@@ -1,0 +1,2 @@
+station,ts,level_mm,reason,by
+HB01,2026-09-30T04:15:00Z,1712,logger reading during battery swap; level from the staff gauge,wick

@@ -1,0 +1,34 @@
+{
+  "test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "bugs": {
+    "no-data": {
+      "file": "gaugemoor/clean.py",
+      "find": "    return [r for prev, r in zip([None, *kept], kept) if not _jump(prev, r, station.spike_mm)]\n",
+      "replace": "    return (r for prev, r in zip([None, *kept], kept) if not _jump(prev, r, station.spike_mm))\n",
+      "test": "tests/test_bulletin.py",
+      "test_names": [
+        "test_marrow_ford_daily_line",
+        "test_a_false_spike_is_left_out_of_the_peak"
+      ],
+      "note": null,
+      "acceptance": "acceptance/test_acceptance_no_data.py"
+    },
+    "reexport": {
+      "file": "gaugemoor/ledger.py",
+      "find": "    return hashlib.sha256(drop.data).hexdigest()\n",
+      "replace": "    return hashlib.sha256(drop.data[:1024]).hexdigest()\n",
+      "test": "tests/test_batch.py",
+      "test_names": [
+        "test_second_delivery_of_a_day_replaces_its_readings"
+      ],
+      "note": null,
+      "acceptance": "acceptance/test_acceptance_reexport.py"
+    }
+  }
+}

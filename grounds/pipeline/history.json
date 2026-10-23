@@ -1,0 +1,421 @@
+{
+  "authors": {
+    "ysolde": "Ysolde Marrick <ysolde@brindlemoor-rivers.example>",
+    "brannock": "Brannock <brannock@agents.brindlemoor-rivers.example>",
+    "ferris": "Ferris <ferris@agents.brindlemoor-rivers.example>",
+    "wick": "Wick <wick@agents.brindlemoor-rivers.example>",
+    "saffi": "Saffi <saffi@agents.brindlemoor-rivers.example>",
+    "tolliver": "Tolliver <tolliver@agents.brindlemoor-rivers.example>"
+  },
+  "commits": [
+    {
+      "id": "start",
+      "dir": "01-start",
+      "author": "ysolde",
+      "date": "2026-07-06T09:20:00Z",
+      "message": "Start gaugemoor: plan, rules and decisions D1-D3\n\nSeven phases in PHASES.md; the session rules; decisions and the station\nlist in PROJECT-CONTEXT.md. Brannock builds phase 1; Ferris leads and reviews."
+    },
+    {
+      "id": "stations-registry",
+      "dir": "02-stations-registry",
+      "author": "brannock",
+      "date": "2026-07-08T10:42:00Z",
+      "message": "stations: registry of the five gauges from data/stations.csv (D2, D3)"
+    },
+    {
+      "id": "ingest-formats",
+      "dir": "03-ingest-formats",
+      "author": "brannock",
+      "date": "2026-07-13T15:05:00Z",
+      "message": "ingest: Velcor VL-2 and Amsel 300 files into raw rows\n\nThe format is recognized from the file itself; unknown files raise\nUnknownFormat. Lines that do not parse come back as problems."
+    },
+    {
+      "id": "close-phase-1",
+      "dir": "04-close-phase-1",
+      "author": "ferris",
+      "date": "2026-07-17T16:30:00Z",
+      "message": "Close phase 1; prompt for phase 2"
+    },
+    {
+      "id": "screening",
+      "dir": "05-screening",
+      "author": "wick",
+      "date": "2026-07-24T11:12:00Z",
+      "message": "clean: range and spike checks, quarantine with reason codes (D4, D5)\n\nSpike limits for Kestle Weir and Marrow Ford from stations.csv. The\nflatline check reports runs of one level for review."
+    },
+    {
+      "id": "close-phase-2",
+      "dir": "06-close-phase-2",
+      "author": "ferris",
+      "date": "2026-07-31T15:48:00Z",
+      "message": "Close phase 2; record D4 and D5; prompt for phase 3"
+    },
+    {
+      "id": "normalize-dedupe",
+      "dir": "07-normalize-dedupe",
+      "author": "wick",
+      "date": "2026-08-07T10:03:00Z",
+      "message": "normalize, dedupe: UTC by fixed offset, integer mm, later delivery wins (D2, D3, D6)"
+    },
+    {
+      "id": "close-phase-3",
+      "dir": "08-close-phase-3",
+      "author": "ferris",
+      "date": "2026-08-14T16:20:00Z",
+      "message": "Close phase 3; roster and role cards; prompt for phase 4"
+    },
+    {
+      "id": "rollup-bulletin",
+      "dir": "09-rollup-bulletin",
+      "author": "saffi",
+      "date": "2026-08-19T14:31:00Z",
+      "message": "rollup, bulletin: daily low, peak and peak time from screened readings (D4)"
+    },
+    {
+      "id": "resample-hourly",
+      "dir": "10-resample-hourly",
+      "author": "saffi",
+      "date": "2026-08-25T10:17:00Z",
+      "message": "resample: hourly series, gaps interpolated (D7)"
+    },
+    {
+      "id": "close-phase-4",
+      "dir": "11-close-phase-4",
+      "author": "ferris",
+      "date": "2026-08-28T16:05:00Z",
+      "message": "Close phase 4; Tolliver joins for alerts; prompt for phase 5"
+    },
+    {
+      "id": "decisions-d8-d12",
+      "dir": "12-decisions-d8-d12",
+      "author": "ferris",
+      "date": "2026-09-02T09:40:00Z",
+      "message": "Record D8-D12 from Ysolde; experience notes start (D11)\n\nD9 overturns D8: alerts run on raw 15-minute readings."
+    },
+    {
+      "id": "thresholds",
+      "dir": "13-thresholds",
+      "author": "ysolde",
+      "date": "2026-09-02T13:15:00Z",
+      "message": "stations.csv: warn, severe and clear margin from the council's flood plan (D12)"
+    },
+    {
+      "id": "alerts-state",
+      "dir": "14-alerts-state",
+      "author": "tolliver",
+      "date": "2026-09-03T10:22:00Z",
+      "message": "alerts: warning, severe and cleared on raw readings (D9)\n\nstations reads the threshold columns Ysolde entered (D12); Wick agreed."
+    },
+    {
+      "id": "fix-station-shows-no-data-lower-case-id",
+      "dir": "15-fix-station-shows-no-data-lower-case-id",
+      "author": "saffi",
+      "date": "2026-09-03T15:40:00Z",
+      "message": "bulletin: look readings up by the case-folded station id\n\nAmsel loggers write the id in lower case, so Hollinby Bridge showed no data."
+    },
+    {
+      "id": "fix-warning-flaps-at-warn-level",
+      "dir": "16-fix-warning-flaps-at-warn-level",
+      "author": "tolliver",
+      "date": "2026-09-04T11:08:00Z",
+      "message": "alerts: clear a warning only below warn minus the clear margin (D9)"
+    },
+    {
+      "id": "outbox-records",
+      "dir": "17-outbox-records",
+      "author": "tolliver",
+      "date": "2026-09-07T14:50:00Z",
+      "message": "outbox: one JSON line per alert in the gateway's format (D10)"
+    },
+    {
+      "id": "fix-bulletin-peak-time-an-hour-off",
+      "dir": "18-fix-bulletin-peak-time-an-hour-off",
+      "author": "saffi",
+      "date": "2026-09-08T10:35:00Z",
+      "message": "rollup: peak time in the station's standard time (D2)"
+    },
+    {
+      "id": "fix-severe-without-warning",
+      "dir": "19-fix-severe-without-warning",
+      "author": "tolliver",
+      "date": "2026-09-10T16:12:00Z",
+      "message": "alerts: a jump past severe sends the warning first"
+    },
+    {
+      "id": "fix-alert-text-split-in-two",
+      "dir": "20-fix-alert-text-split-in-two",
+      "author": "tolliver",
+      "date": "2026-09-11T09:58:00Z",
+      "message": "outbox: short station names, text capped at 160 characters"
+    },
+    {
+      "id": "close-phase-5",
+      "dir": "21-close-phase-5",
+      "author": "ferris",
+      "date": "2026-09-11T16:40:00Z",
+      "message": "Close phase 5; D7 reopened; prompt for phase 6"
+    },
+    {
+      "id": "ratings",
+      "dir": "22-ratings",
+      "author": "saffi",
+      "date": "2026-09-15T10:10:00Z",
+      "message": "ratings: rating curves from data/ratings.csv; stations name their rating"
+    },
+    {
+      "id": "fix-outbox-lines-interleaved",
+      "dir": "23-fix-outbox-lines-interleaved",
+      "author": "tolliver",
+      "date": "2026-09-15T14:27:00Z",
+      "message": "outbox: write each record in a single call"
+    },
+    {
+      "id": "council-export",
+      "dir": "24-council-export",
+      "author": "saffi",
+      "date": "2026-09-17T15:02:00Z",
+      "message": "export: council CSV of a day's levels and flows (D14)"
+    },
+    {
+      "id": "fix-hourly-series-bridges-an-outage",
+      "dir": "25-fix-hourly-series-bridges-an-outage",
+      "author": "saffi",
+      "date": "2026-09-18T11:44:00Z",
+      "message": "resample: interpolate gaps of at most 4 slots (D13 overturns D7)"
+    },
+    {
+      "id": "fix-hour-from-one-reading",
+      "dir": "26-fix-hour-from-one-reading",
+      "author": "saffi",
+      "date": "2026-09-19T10:26:00Z",
+      "message": "resample: an hour needs 2 of its 4 readings"
+    },
+    {
+      "id": "fix-negative-flow-at-low-water",
+      "dir": "27-fix-negative-flow-at-low-water",
+      "author": "saffi",
+      "date": "2026-09-22T14:03:00Z",
+      "message": "ratings: zero flow below the cease-to-flow stage"
+    },
+    {
+      "id": "fix-flow-jumps-at-rating-segment",
+      "dir": "28-fix-flow-jumps-at-rating-segment",
+      "author": "saffi",
+      "date": "2026-09-23T11:19:00Z",
+      "message": "ratings: segments cover from_mm <= h < to_mm; ratings.csv contiguous"
+    },
+    {
+      "id": "fix-council-portal-rejects-export",
+      "dir": "29-fix-council-portal-rejects-export",
+      "author": "saffi",
+      "date": "2026-09-24T09:51:00Z",
+      "message": "export: plain UTF-8 without a byte order mark (D14)"
+    },
+    {
+      "id": "close-phase-6",
+      "dir": "30-close-phase-6",
+      "author": "ferris",
+      "date": "2026-09-25T16:15:00Z",
+      "message": "Close phase 6; record D13 and D14; prompt for phase 7"
+    },
+    {
+      "id": "fix-export-float-noise",
+      "dir": "31-fix-export-float-noise",
+      "author": "saffi",
+      "date": "2026-09-26T10:30:00Z",
+      "message": "export: levels as integer millimeters (D3)"
+    },
+    {
+      "id": "batch-ledger-edits",
+      "dir": "32-batch-ledger-edits",
+      "author": "brannock",
+      "date": "2026-09-28T15:36:00Z",
+      "message": "batch: run drops through parse, normalize and merge; ledger; manual edits\n\nThe ledger remembers which drops a batch has processed, so a drop is\nprocessed once. Manual edits come from data/edits.csv."
+    },
+    {
+      "id": "replay-archive",
+      "dir": "33-replay-archive",
+      "author": "tolliver",
+      "date": "2026-09-28T17:05:00Z",
+      "message": "replay: run the alert rules over an archive in time order\n\noutbox: dry-run records for replay, and open_outbox."
+    },
+    {
+      "id": "command-line",
+      "dir": "34-command-line",
+      "author": "ferris",
+      "date": "2026-09-29T09:30:00Z",
+      "message": "cli: python3 -m gaugemoor batch | bulletin | replay | export"
+    },
+    {
+      "id": "fix-volunteers-texted-during-replay",
+      "dir": "35-fix-volunteers-texted-during-replay",
+      "author": "ferris",
+      "date": "2026-09-29T16:48:00Z",
+      "message": "replay: --outbox PATH; print the outbox path before writing\n\nThis morning's check replay wrote into var/outbox.jsonl and the gateway\ntexted volunteers. Experience note to follow."
+    },
+    {
+      "id": "fix-export-rows-out-of-order",
+      "dir": "36-fix-export-rows-out-of-order",
+      "author": "saffi",
+      "date": "2026-09-30T11:25:00Z",
+      "message": "export: rows sorted by station, then time"
+    },
+    {
+      "id": "edits-hollinby",
+      "dir": "37-edits-hollinby",
+      "author": "wick",
+      "date": "2026-10-01T08:55:00Z",
+      "message": "data: manual edit for Hollinby Bridge during the battery swap"
+    },
+    {
+      "id": "fix-export-flow-in-liters",
+      "dir": "38-fix-export-flow-in-liters",
+      "author": "saffi",
+      "date": "2026-10-01T13:40:00Z",
+      "message": "ratings, export: flow in m3/s for every rating, 3 decimals (D14)"
+    },
+    {
+      "id": "weekly-groundwork",
+      "dir": "39-weekly-groundwork",
+      "author": "saffi",
+      "date": "2026-10-01T16:22:00Z",
+      "message": "weekly: week_of and weekly_mean, groundwork for the weekly summary"
+    },
+    {
+      "id": "fix-cli-unknown-command-exits-zero",
+      "dir": "40-fix-cli-unknown-command-exits-zero",
+      "author": "ferris",
+      "date": "2026-10-02T10:12:00Z",
+      "message": "cli: an unknown command is a usage error, exit 2"
+    },
+    {
+      "id": "fix-weekly-week-starts-sunday",
+      "dir": "41-fix-weekly-week-starts-sunday",
+      "author": "saffi",
+      "date": "2026-10-05T09:47:00Z",
+      "message": "weekly: ISO weeks, Monday start"
+    },
+    {
+      "id": "fix-replay-alerts-during-maintenance",
+      "dir": "42-fix-replay-alerts-during-maintenance",
+      "author": "tolliver",
+      "date": "2026-10-06T10:58:00Z",
+      "message": "replay: skip maintenance windows from data/maintenance.csv"
+    },
+    {
+      "id": "fix-manual-corrections-lost-after-batch",
+      "dir": "43-fix-manual-corrections-lost-after-batch",
+      "author": "brannock",
+      "date": "2026-10-06T15:20:00Z",
+      "message": "batch: apply manual edits after the run's drops (D15)"
+    },
+    {
+      "id": "fix-thresholds-stale-in-long-replay",
+      "dir": "44-fix-thresholds-stale-in-long-replay",
+      "author": "tolliver",
+      "date": "2026-10-07T11:33:00Z",
+      "message": "alerts: read thresholds from the station on every reading (D12)"
+    },
+    {
+      "id": "fix-maintenance-window-end",
+      "dir": "45-fix-maintenance-window-end",
+      "author": "tolliver",
+      "date": "2026-10-08T14:09:00Z",
+      "message": "replay: a maintenance window's end is exclusive"
+    },
+    {
+      "id": "fix-weekly-mean-weights-short-days",
+      "dir": "46-fix-weekly-mean-weights-short-days",
+      "author": "saffi",
+      "date": "2026-10-09T10:41:00Z",
+      "message": "weekly: mean of all hours, each weighted equally"
+    },
+    {
+      "id": "close-phase-7",
+      "dir": "47-close-phase-7",
+      "author": "ferris",
+      "date": "2026-10-09T16:55:00Z",
+      "message": "Close phase 7; add phase 8 (Ysolde); record D15-D17; prompt for phase 8"
+    },
+    {
+      "id": "fix-duplicate-readings-overlapping-downloads",
+      "dir": "48-fix-duplicate-readings-overlapping-downloads",
+      "author": "wick",
+      "date": "2026-10-12T10:15:00Z",
+      "message": "dedupe: one reading per (station, ts); the later delivery wins (D6)"
+    },
+    {
+      "id": "edits-by-slot",
+      "dir": "49-edits-by-slot",
+      "author": "brannock",
+      "date": "2026-10-13T09:20:00Z",
+      "message": "edits: write over the (station, ts) slot, as dedupe now keys the store"
+    },
+    {
+      "id": "rise-limits",
+      "dir": "50-rise-limits",
+      "author": "ysolde",
+      "date": "2026-10-13T14:00:00Z",
+      "message": "stations.csv: rise_mm_per_h for Kestle Weir, Marrow Ford and Orley Lock (D17)"
+    },
+    {
+      "id": "tarrow-sniff",
+      "dir": "51-tarrow-sniff",
+      "author": "brannock",
+      "date": "2026-10-13T16:45:00Z",
+      "message": "ingest: recognize Tarrow T2 files, refused until the parser lands (8.2, part 1)"
+    },
+    {
+      "id": "fix-winter-replay-fills-scratch-disk",
+      "dir": "52-fix-winter-replay-fills-scratch-disk",
+      "author": "tolliver",
+      "date": "2026-10-14T10:05:00Z",
+      "message": "outbox: compact dry-run records without text (8.1)"
+    },
+    {
+      "id": "weekly-by-week",
+      "dir": "53-weekly-by-week",
+      "author": "saffi",
+      "date": "2026-10-14T13:30:00Z",
+      "message": "weekly: per-week means (8.4, part 1)"
+    },
+    {
+      "id": "review-8-1",
+      "dir": "54-review-8-1",
+      "author": "ferris",
+      "date": "2026-10-14T16:10:00Z",
+      "message": "Review 8.1: passed; tick it in PHASES.md"
+    },
+    {
+      "id": "fix-alert-sent-twice-after-restart",
+      "dir": "55-fix-alert-sent-twice-after-restart",
+      "author": "tolliver",
+      "date": "2026-10-15T11:50:00Z",
+      "message": "alerts: restore open alerts from the outbox's last records after a restart"
+    },
+    {
+      "id": "flatline-per-station",
+      "dir": "56-flatline-per-station",
+      "author": "wick",
+      "date": "2026-10-15T15:35:00Z",
+      "message": "clean: flatline limit per station, Tansey Cut first (8.5, part 1)\n\nstations reads rise_mm_per_h (D17)."
+    },
+    {
+      "id": "handover-alerts",
+      "dir": "57-handover-alerts",
+      "author": "ferris",
+      "date": "2026-10-16T10:20:00Z",
+      "message": "Alerts role open: Tolliver moved to the fish-counter project\n\nteam/tolliver.md becomes team/alerts.md; ROSTER and the phase 8 prompt\nsay so. cli: batch restores alert state from the outbox on start.",
+      "delete": [
+        "team/tolliver.md"
+      ]
+    },
+    {
+      "id": "tidy",
+      "dir": "58-tidy",
+      "author": "ferris",
+      "date": "2026-10-21T15:30:00Z",
+      "message": "tidy: docstrings and type hints across gaugemoor/ before the review of 8.2-8.5"
+    }
+  ]
+}
