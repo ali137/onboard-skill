@@ -26,7 +26,10 @@ Skip any file that does not exist and remember that it was missing.
 4. **Vocabulary:** the Terms table in `ARCHITECTURE-ESSENTIALS.md`. Use those
    words in your briefing.
 5. **State:** `PHASES.md`, then the active phase's prompt (the file it names).
-   That prompt gives your next task and its "done when".
+   That prompt gives your next task and its "done when". No `PHASES.md` (or no
+   plan like it): read the current focus from recent history instead:
+   `git log --oneline -20` (or `git log -20 --format='%h %cs %s'`), and the
+   newest section of a changelog, roadmap or TODO file if the project has one.
 6. **Experience:** `team/experience/INDEX.md`. Open only the notes whose line
    matches your task (same symptom, same files, same area). Your task is the
    one you were given now; a note that would matter only if you later touched
@@ -43,6 +46,11 @@ never probed. Pick the claims that matter for your next task; at minimum check:
 
 - the active phase's prompt exists at the path `PHASES.md` gives, and
   exactly one phase is active (if the file says that is the rule);
+- each phase's status in `PHASES.md` agrees with its prompt and its
+  "done when" list, at least for the active phase and the last one marked
+  done: a phase marked done whose done-when items are still open, or whose
+  prompt says the work is still under way, is drift, and so is an active
+  phase whose items are all checked;
 - files and folders the notes describe as existing (or as not existing yet)
   really are that way;
 - commands the notes document point at scripts, packages, or test files that exist;
@@ -96,19 +104,28 @@ End the whole message with "Waiting for go." Start the work only after "go" from
 
 Fixed sections, in this order, at most 35 lines in total: one to three lines
 per section, except sections 4 and 10. Write "none" rather than dropping a
-section. Point to paths instead of copying text.
+section. Point to paths instead of copying text. Section 3's project line
+says what the project is (product, client or purpose), from its own files.
+Before section 3 names a phase, compare that phase's status cell in
+`PHASES.md` with its prompt and done-when list (step 3); any mismatch goes in
+section 4, and section 3 says which status you are trusting.
+Section 8's "may decide alone" comes from the rules, your role card or the
+session prompt. Most projects have no decide-alone list: then name what their
+rules leave to you, how to do the work inside the conventions they set (the
+approach, the code, the tests), and cite those rules. Write "nothing recorded"
+only when the files set no rules at all.
 
 ```
 ## Briefing: <name or role>
 
 1. **Who I am:** <role>; reports to <lead>.
 2. **Team:** <name (role), ...> or "solo session".
-3. **Where things stand:** active phase <n, name> (<file>); last finished step: <...>.
+3. **Where things stand:** Project: <what it is, in one line>. Phase: <n, name> (<file>), or with no phase plan, current focus: <what recent history shows> (from <git log / changelog>). Last finished step: <...>.
 4. **Drift found:** <claim> (<file>): checked <what>, found <what>. Or "none".
 5. **Rule conflicts:** <rule> (<file>) vs <rule> (<file>); following <the stricter>. Or "none".
 6. **Matching experience notes:** <path>: <why it matches>. Or "none".
 7. **My next task:** <task>. Done when: <items>.
-8. **My limits:** never touch <...>; ask before <...>.
+8. **My limits:** May decide alone: <...> (<file>). Must ask: <...>. Never touch: <...>.
 9. **Quick check:** <command>: <result>. Or "none documented".
 10. **Questions for the lead:** <numbered questions>. Or "none".
 
@@ -122,7 +139,7 @@ Waiting for go.
 | Situation | What to do |
 |---|---|
 | No project files at all | Say so; ask the lead what the project is; stop (no briefing). |
-| No `PHASES.md` | Role "newcomer, task unknown" if no name; section 3: "current phase unknown" (give the last commit if git has one); ask in section 10. |
+| No `PHASES.md` | Role "newcomer, task unknown" if no name; section 3: "no phase plan", then the current focus from recent history (step 2.5) and the last commit; ask for the task in section 10. |
 | No `team/` folder | Solo fallback from the existing files; section 2: "solo session". |
 | Your role has no role card | Use your starting prompt for role and limits; ask the lead for the card in section 10. |
 | No experience index | Section 6: "none". |

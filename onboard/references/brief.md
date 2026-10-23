@@ -34,7 +34,7 @@ Where things stand: <active phase, last finished step>.
 
 Your task: <task>. Done when: <items>.
 
-Your limits: never touch <...>; ask <lead> before <...>.
+Your limits: you may decide alone <...>; ask <lead> before <...>; never touch <...>.
 
 Matching experience notes (open only these):
 - <path>: <one line on why it matches>
