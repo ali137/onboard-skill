@@ -3,7 +3,7 @@
 
   run.py --arm with|without --src <snapshot> --out <new run folder> --prompt <text or @file>
          [--skill <skill folder>] [--plant <plant.json>] [--prepare <command>] [--keep-git]
-         [--watch <text>]...
+         [--watch <text>]... [--note-from <run copy>] [--allow <rule>]...
          [--base-settings <settings.json>] [--deny-read <dir>]... [--token-file <file>]
 
 Builds <out>/work, a writable copy of --src:
@@ -14,16 +14,20 @@ Builds <out>/work, a writable copy of --src:
   - --prepare runs a command on the copy (its path added as the last argument),
     for example to seed a bug; its output goes to <out>/prepare.log;
   - the "with" arm gets the skill in .claude/skills/<name>/;
+  - --note-from copies an earlier run copy's team/experience/ (its notes and
+    INDEX.md) into the copy, with that copy's path rewritten to this one; the
+    files stay untracked;
   - git: none, like a source without git (git does not look above <out>); with
     --keep-git, the source's history, with the harness's changes (rewrites,
-    plants, --prepare) hidden in it (see keep_history).
+    plants, --prepare, the skill, --note-from) hidden in it (see keep_history).
 The run gets a fresh CLAUDE_CONFIG_DIR (<out>/cfg) and only an allowlist of
 the caller's environment. HOME stays real; paths a run names under it are
 recorded. <out>/run-settings.json is
 --base-settings (deny rules, guard hooks), denials for each --deny-read folder
 (Read, Grep, Glob, and Bash commands naming it, plus any Bash "../"), and
 claudeMdExcludes for every ancestor memory file, so only the copy's own
-CLAUDE.md loads. A run's own parent folders cannot be denied (the copy lives
+CLAUDE.md loads, plus each --allow rule (e.g. "Bash(git log:*)") in
+permissions.allow: without one, a headless run is denied every tool that asks. A run's own parent folders cannot be denied (the copy lives
 in them), so paths it names outside the copy are recorded instead.
 
 Writes stream.jsonl, stderr.log, init.json, result.md and run.json (setup
@@ -128,9 +132,26 @@ def prepare(work, command, out):
     return sorted(n for n in after if n not in before)
 
 
-def keep_history(work, rewritten, planted, skill_name, arm):
-    """With the source's history kept, hide what the harness changed: the skill is
-    git-excluded (untracked, unseen), and rewritten or planted tracked files are
+NOTES = "team/experience"
+
+
+def copy_notes(src_copy, work):
+    """Copy an earlier run copy's experience notes in, pointing them at this copy."""
+    src_copy = os.path.realpath(src_copy)
+    src, dest = f"{src_copy}/{NOTES}", f"{work}/{NOTES}"
+    if not os.path.isdir(src):
+        sys.exit(f"run: --note-from has no {NOTES}/: {src_copy}")
+    if os.path.lexists(dest):
+        sys.exit(f"run: the copy already has {NOTES}/; --note-from would mix notes")
+    shutil.copytree(src, dest)
+    rewrite_paths(dest, src_copy, work)
+    return sorted(os.path.relpath(os.path.join(d, f), work)
+                  for d, _, fs in os.walk(dest) for f in fs)
+
+
+def keep_history(work, rewritten, planted, skill_name, arm, notes=False):
+    """With the source's history kept, hide what the harness changed: the skill and
+    copied notes are git-excluded (untracked, unseen), and rewritten or planted tracked files are
     folded into HEAD with its own author, date and message; refs that pointed at
     the old HEAD follow it, and the reflog is cleared. The source's own uncommitted
     work stays uncommitted."""
@@ -138,6 +159,9 @@ def keep_history(work, rewritten, planted, skill_name, arm):
     if arm == "with":
         with open(f"{work}/.git/info/exclude", "a") as f:
             f.write(f"\n/.claude/skills/{skill_name}/\n")
+    if notes:
+        with open(f"{work}/.git/info/exclude", "a") as f:
+            f.write(f"\n/{NOTES}/\n")
     paths = sorted(set(rewritten) | set(planted))
     tracked = subprocess.run(g + ["ls-files", "--", *paths], capture_output=True,
                              text=True, check=True).stdout.split() if paths else []
@@ -320,6 +344,11 @@ def main():
     ap.add_argument("--watch", action="append", default=[], metavar="TEXT",
                     help="record tool calls whose input or result contains TEXT (e.g. a fix's hash)")
     ap.add_argument("--keep-git", action="store_true", help="keep the source's git history")
+    ap.add_argument("--note-from", metavar="COPY",
+                    help="an earlier run's copy (<run>/work) whose team/experience/ is copied in")
+    ap.add_argument("--allow", action="append", default=[], metavar="RULE",
+                    help='permission rule the run may use without asking, e.g. "Bash(git log:*)" '
+                         "(repeatable; @file reads one rule per line)")
     ap.add_argument("--base-settings", help="settings JSON the run starts from (deny rules, guard)")
     ap.add_argument("--deny-read", action="append", default=[], metavar="DIR",
                     help="folder the run may not Read/Grep/Glob (repeatable; e.g. the answer keys)")
@@ -328,7 +357,6 @@ def main():
     ap.add_argument("--model", default="sonnet")
     ap.add_argument("--max-turns", default="30")
     ap.add_argument("--timeout", type=int, default=1800, help="seconds")
-    ap.add_argument("--allowed-tools", default="")
     a = ap.parse_args()
 
     src, out = os.path.realpath(a.src), os.path.realpath(a.out)
@@ -355,7 +383,9 @@ def main():
     prepared = prepare(work, a.prepare, out) if a.prepare else []
     if a.arm == "with":
         shutil.copytree(a.skill, f"{work}/.claude/skills/{skill_name}")
-    git_mode = keep_history(work, rewritten, planted + prepared, skill_name, a.arm) if a.keep_git else "none"
+    notes = copy_notes(a.note_from, work) if a.note_from else []
+    git_mode = keep_history(work, rewritten, planted + prepared, skill_name, a.arm,
+                            bool(notes)) if a.keep_git else "none"
 
     os.makedirs(cfg)
     settings = json.load(open(a.base_settings)) if a.base_settings else {}
@@ -366,6 +396,11 @@ def main():
         deny += [f"Read(/{d}/**)", f"Grep(/{d}/**)", f"Glob(/{d}/**)", f"Bash(*{d}*)"]
     if a.deny_read:  # relative escapes from the copy, e.g. cat ../../keys/x
         deny.append("Bash(*../*)")
+    allow = [r for x in a.allow for r in (
+        [l.strip() for l in open(x[1:]) if l.strip() and not l.startswith("#")]
+        if x.startswith("@") else [x])]
+    if allow:
+        settings["permissions"].setdefault("allow", []).extend(allow)
     json.dump(settings, open(f"{out}/run-settings.json", "w"), indent=2)
 
     prompt = open(a.prompt[1:]).read() if a.prompt.startswith("@") else a.prompt
@@ -381,8 +416,6 @@ def main():
            "--verbose", "--include-hook-events", "--max-turns", a.max_turns,
            "--settings", f"{out}/run-settings.json",
            "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
-    if a.allowed_tools:
-        cmd += ["--allowedTools", a.allowed_tools]
     started, timed_out = time.time(), False
     with open(f"{out}/stream.jsonl", "w") as so, open(f"{out}/stderr.log", "w") as se:
         try:
@@ -438,7 +471,8 @@ def main():
         "arm": a.arm, "ok": ok, "src": src, "model": a.model, "git": git_mode,
         "harness": harness_version(), "env_keys": sorted(k for k in env if "TOKEN" not in k),
         "paths_rewritten_files": rewritten, "planted": planted,
-        "prepare": a.prepare, "prepared": prepared, "wall_s": wall,
+        "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
+        "allow": allow, "wall_s": wall,
         "metrics": metrics(calls, result, work, tool_results(events), a.watch), "checks": checks,
     }
     json.dump(record, open(f"{out}/run.json", "w"), indent=2)

@@ -4,6 +4,10 @@
   seed.py <copy> --bug <id>              seed: reverse the source half of the fix
   seed.py <copy> --bug <id> --restore    put the fix back
   seed.py <copy> --prove [--bug <id>]    named test green, seed, red, restore, green
+  seed.py <copy> --bug <id> --check [--out <json>]
+                                         is it fixed? the bug's whole test file runs;
+                                         prints (and writes) the named test's status
+                                         and every failure; exit 0 fixed, 1 not
 
 A copy is the folder clone.py made, or any copy of it that keeps its .git: the
 fix diffs come from its own history. --prove runs tests, so the copy must be
@@ -57,8 +61,8 @@ def apply(copy, bug_id, restore=False):
     return bug["src"]
 
 
-def named_test(copy, bug):
-    """'passed' or 'failed' for the bug's named test, plus every failing test in its file."""
+def vitest_report(copy, bug):
+    """vitest's JSON report for the bug's test file."""
     with tempfile.TemporaryDirectory() as t:
         out = os.path.join(t, "r.json")
         p = subprocess.run(["npx", "--no-install", "vitest", "run", bug["test"], "--reporter=json",
@@ -66,7 +70,29 @@ def named_test(copy, bug):
         if not os.path.isfile(out):
             sys.exit(f"seed: vitest wrote no report for {bug['test']}; is the copy installed? "
                      f"({p.stderr.strip()[-300:]})")
-        tests = [x for f in json.load(open(out))["testResults"] for x in f["assertionResults"]]
+        return json.load(open(out))
+
+
+def summarize(report, bug_id):
+    """Fixed means: the named test passed, the file's suite loaded, and nothing in it failed."""
+    bug = GROUND["bugs"][bug_id]
+    files = report.get("testResults", [])
+    tests = [x for f in files for x in f.get("assertionResults", [])]
+    named = [x["status"] for x in tests if x["title"] == bug["test_name"]]
+    failed = [{"test": x["fullName"], "message": "\n".join(x.get("failureMessages") or [])[:800]}
+              for x in tests if x["status"] == "failed"]
+    failed += [{"test": f"(suite) {f.get('name', '')}", "message": (f.get("message") or "")[:800]}
+               for f in files if f.get("status") == "failed" and not f.get("assertionResults")]
+    status = named[0] if len(named) == 1 else f"found {len(named)} times"
+    return {"bug": bug_id, "test_file": bug["test"], "named_test": bug["test_name"],
+            "named_status": status, "tests": len(tests),
+            "passed": sum(1 for x in tests if x["status"] == "passed"), "failed": failed,
+            "fixed": status == "passed" and not failed and bool(tests)}
+
+
+def named_test(copy, bug):
+    """'passed' or 'failed' for the bug's named test, plus every failing test in its file."""
+    tests = [x for f in vitest_report(copy, bug)["testResults"] for x in f["assertionResults"]]
     named = [x["status"] for x in tests if x["title"] == bug["test_name"]]
     if len(named) != 1:
         sys.exit(f"seed: the named test occurs {len(named)} times in {bug['test']}")
@@ -99,6 +125,8 @@ def main():
     ap.add_argument("--bug", choices=sorted(GROUND["bugs"]))
     ap.add_argument("--restore", action="store_true")
     ap.add_argument("--prove", action="store_true")
+    ap.add_argument("--check", action="store_true", help="is the bug fixed in the copy?")
+    ap.add_argument("--out", help="with --check: also write the result here")
     a = ap.parse_args()
     copy = os.path.abspath(a.copy)
     if not os.path.isdir(copy):
@@ -111,6 +139,12 @@ def main():
         sys.exit(0 if prove(copy, [a.bug] if a.bug else sorted(GROUND["bugs"])) else 1)
     if not a.bug:
         ap.error("--bug is required unless --prove")
+    if a.check:
+        r = summarize(vitest_report(copy, GROUND["bugs"][a.bug]), a.bug)
+        if a.out:
+            json.dump(r, open(a.out, "w"), indent=2)
+        print(json.dumps(r, indent=2))
+        sys.exit(0 if r["fixed"] else 1)
     files = apply(copy, a.bug, restore=a.restore)
     print(f"seed: {a.bug} {'restored' if a.restore else 'seeded'} in {', '.join(files)}")
 

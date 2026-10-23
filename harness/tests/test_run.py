@@ -252,3 +252,39 @@ def test_hook_check(tmp_path):
     assert r.returncode == 1
     bad = json.load(open(tmp_path / "runs/h3/run.json"))["checks"]["undeclared_hooks"]
     assert bad == ["SessionStart"]
+
+
+def test_note_from_is_copied_untracked_and_allow_rules(tmp_path):
+    """--note-from copies an earlier copy's team/experience/ in, with that copy's
+    path rewritten; git status does not show it. --allow rules land in the run's
+    settings (one per flag, or one per line of an @file)."""
+    bin_dir, _, skill, _ = setup(tmp_path)
+    src = tmp_path / "clone"
+    write(str(src / "app.py"), "x = 1\n")
+    g = ["git", "-C", str(src), "-c", "user.name=A", "-c", "user.email=a@b"]
+    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
+    subprocess.run(g + ["add", "-A"], check=True)
+    subprocess.run(g + ["commit", "-q", "-m", "first"], check=True)
+    cold = tmp_path / "runs/cold-1/work"
+    write(str(cold / "team/experience/INDEX.md"), "- 2026-01-01 · x · app.py · team/experience/n.md\n")
+    write(str(cold / "team/experience/n.md"), f"| files | {cold}/app.py |\n")
+    rules = tmp_path / "allow.txt"
+    write(str(rules), "# read-only\nBash(git log:*)\n\nBash(ls:*)\n")
+    out = tmp_path / "runs/note-1"
+    r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(src), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), "--keep-git", "--note-from", str(cold),
+            "--allow", "Edit", "--allow", f"@{rules}")
+    assert r.returncode == 0, r.stdout + r.stderr
+    work = out / "work"
+    assert open(work / "team/experience/n.md").read() == f"| files | {work}/app.py |\n"
+    q = lambda *x: subprocess.run(["git", "-C", str(work), *x], capture_output=True, text=True).stdout
+    assert q("status", "--porcelain") == ""
+    assert q("log", "--format=%s") == "first\n"
+    rec = json.load(open(out / "run.json"))
+    assert rec["notes"] == ["team/experience/INDEX.md", "team/experience/n.md"]
+    assert rec["allow"] == ["Edit", "Bash(git log:*)", "Bash(ls:*)"]
+    assert json.load(open(out / "run-settings.json"))["permissions"]["allow"] == rec["allow"]
+    again = tmp_path / "runs/note-2"
+    r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(src), "--out", str(again),
+            "--prompt", "hi", "--skill", str(skill), "--note-from", str(tmp_path / "runs/none"))
+    assert r.returncode != 0 and "has no team/experience/" in r.stderr

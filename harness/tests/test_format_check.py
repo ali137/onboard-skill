@@ -7,9 +7,14 @@ import format_check as fc  # noqa: E402
 TITLES = fc.BRIEFING
 
 
+GOOD = {"Where things stand": "Project: a CLI. Phase: 2.",
+        "My limits": "May decide alone: layout. Must ask: scope. Never touch: x."}
+
+
 def briefing(style="{n}. **{t}:** {body}", bodies=None, extra="", order=None):
     order = order or list(range(len(TITLES)))
-    rows = [style.format(n=i + 1, t=TITLES[i], body=(bodies or {}).get(TITLES[i], "something"))
+    bodies = dict(GOOD, **(bodies or {}))
+    rows = [style.format(n=i + 1, t=TITLES[i], body=bodies.get(TITLES[i], "something"))
             for i in order]
     return "## Briefing\n\n" + "\n".join(rows) + "\n" + extra + "\nWaiting for go.\n"
 
@@ -41,6 +46,16 @@ def test_plan_after_the_briefing_is_not_counted():
     text = briefing(extra="\n**First reply**\n" + "\n".join(f"- plan {i}" for i in range(30)))
     r = fc.check_briefing(text)
     assert r["ok"] and r["briefing_lines"] == 10
+
+
+def test_required_clauses():
+    r = fc.check_briefing(briefing(bodies={"Where things stand": "Phase 2 is active.",
+                                           "My limits": "Never touch x; ask before y."}))
+    assert r["missing_clauses"] == ["Where things stand: project", "My limits: decide alone"]
+    assert not r["ok"]
+    # a clause on the section's next lines counts
+    r = fc.check_briefing(briefing("### {n}. {t}\n{body}"))
+    assert r["ok"] and not r["missing_clauses"], r
 
 
 def test_note_and_role_card():

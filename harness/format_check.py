@@ -2,7 +2,8 @@
 """Check a newcomer's output against the skill's formats. A script, not a model:
 the output itself is never constrained, only checked afterwards.
 
-  format_check.py briefing <file or run folder>   the 10 briefing sections, length, "Waiting for go."
+  format_check.py briefing <file or run folder>   the 10 briefing sections, their required
+                                                  clauses, length, "Waiting for go."
   format_check.py note <file>...                  the 9 experience-note fields
   format_check.py role-card <file>...             the 9 role-card headings
 
@@ -22,6 +23,8 @@ NOTE = ["date", "commit", "files", "symptom", "cause", "fix", "verified by",
 ROLE_CARD = ["Name", "Role", "Goal", "Owns", "Does not own", "May decide alone",
              "Must ask the lead", "Reports to", "Route to me when"]
 MAX_BRIEFING_LINES = 40
+# words a section's body must hold: what the project is; what the newcomer may decide alone
+CLAUSES = {"Where things stand": ["project"], "My limits": ["decide alone"]}
 
 
 def section_re(title):
@@ -49,7 +52,7 @@ def check_briefing(text):
     out_of_order = [b for a, b in zip(present, present[1:]) if found[b] < found[a]]
 
     end = next((i for i, l in enumerate(lines) if re.search(r"waiting for go", l, re.IGNORECASE)), None)
-    n_lines, empty = 0, []
+    n_lines, empty, clauses = 0, [], []
     if present and not out_of_order:
         first, last = found[present[0]], found[present[-1]]
         stop = len(lines)  # the briefing ends at "Waiting for go." or the next heading or bold line
@@ -64,10 +67,12 @@ def check_briefing(text):
             body = re.sub(r"^[\s*_:.\-–—]+", "", rest) + "".join(lines[i + 1:j])
             if not body.strip(" *_:.-"):
                 empty.append(t)
-    ok = (not missing and not out_of_order and not empty and bool(end)
+            clauses += [f"{t}: {w}" for w in CLAUSES.get(t, []) if w not in body.lower()]
+    ok = (not missing and not out_of_order and not empty and not clauses and bool(end)
           and 0 < n_lines <= MAX_BRIEFING_LINES)
     return {"kind": "briefing", "sections_found": len(present), "missing_sections": missing,
-            "out_of_order": out_of_order, "empty_sections": empty, "briefing_lines": n_lines,
+            "out_of_order": out_of_order, "empty_sections": empty, "missing_clauses": clauses,
+            "briefing_lines": n_lines,
             "under_line_limit": 0 < n_lines <= MAX_BRIEFING_LINES, "waiting_for_go": end is not None,
             "ok": ok}
 
