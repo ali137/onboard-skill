@@ -31,7 +31,8 @@ permissions.allow: without one, a headless run is denied every tool that asks. A
 in them), so paths it names outside the copy are recorded instead.
 
 Writes stream.jsonl, stderr.log, init.json, result.md and run.json (setup
-checks + metrics: turns, the four token counts, time, tool calls deduplicated
+checks, the harness's and the skill's git versions, and metrics summed over every
+result event: turns, the four token counts, time, tool calls deduplicated
 by id and split into main agent and subagents, permission denials, paths
 named outside the copy, Bash commands that read git history, and tool calls
 whose input or result contains a --watch string). Exits 1 if the run's skill list does not match its
@@ -219,8 +220,9 @@ def undeclared_hooks(events, calls, declared):
     return bad
 
 
-def harness_version():
-    g = ["git", "-C", HARNESS]
+def harness_version(path=HARNESS):
+    """The git commit of `path` (default the harness), plus a hash of any uncommitted changes."""
+    g = ["git", "-C", path]
     try:
         rev = subprocess.run(g + ["rev-parse", "--short", "HEAD"], capture_output=True,
                              text=True, check=True).stdout.strip()
@@ -306,10 +308,31 @@ def tool_calls(events):
     return calls
 
 
+def merged_result(events):
+    """One result from every `result` event. A session that ends its reply while a
+    background task still runs goes on and emits another; each event counts only its
+    own segment, except total_cost_usd, which is cumulative."""
+    rs = [e for e in events if e.get("type") == "result"]
+    if not rs:
+        return {}
+    merged = dict(rs[-1])
+    for k in ("num_turns", "duration_ms", "duration_api_ms"):
+        merged[k] = sum(r.get(k) or 0 for r in rs)
+    merged["usage"] = {k: sum((r.get("usage") or {}).get(k) or 0 for r in rs)
+                       for k in ("input_tokens", "output_tokens", "cache_creation_input_tokens",
+                                 "cache_read_input_tokens")}
+    merged["permission_denials"] = [d for r in rs for d in r.get("permission_denials") or []]
+    merged["is_error"] = any(r.get("is_error", True) for r in rs)
+    merged["result"] = "\n\n".join(r["result"] for r in rs if r.get("result"))
+    merged["result_events"] = len(rs)
+    return merged
+
+
 def metrics(calls, result, work, results=None, watch=()):
     usage = result.get("usage") or {}
     results = results or {}
     return {
+        "result_events": result.get("result_events"),
         "num_turns": result.get("num_turns"),
         "duration_ms": result.get("duration_ms"),
         "duration_api_ms": result.get("duration_api_ms"),
@@ -433,7 +456,7 @@ def main():
             pass
     init = next((e for e in events if e.get("type") == "system"
                  and e.get("subtype") == "init"), {})
-    result = next((e for e in events if e.get("type") == "result"), {})
+    result = merged_result(events)
     json.dump(init, open(f"{out}/init.json", "w"), indent=2)
     open(f"{out}/result.md", "w").write(result.get("result", "") + "\n")
 
@@ -469,7 +492,9 @@ def main():
         or checks["is_error"])
     record = {
         "arm": a.arm, "ok": ok, "src": src, "model": a.model, "git": git_mode,
-        "harness": harness_version(), "env_keys": sorted(k for k in env if "TOKEN" not in k),
+        "harness": harness_version(),
+        "skill": harness_version(os.path.realpath(a.skill)) if a.arm == "with" else None,
+        "env_keys": sorted(k for k in env if "TOKEN" not in k),
         "paths_rewritten_files": rewritten, "planted": planted,
         "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
         "allow": allow, "wall_s": wall,

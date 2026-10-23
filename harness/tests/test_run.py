@@ -33,6 +33,8 @@ p({"type": "result", "subtype": "success", "is_error": False, "num_turns": 3, "d
    "duration_api_ms": 1000, "total_cost_usd": 0.01, "result": "## Briefing\nWaiting for go.",
    "usage": {"input_tokens": 5, "output_tokens": 50, "cache_creation_input_tokens": 100,
              "cache_read_input_tokens": 900}})
+for r in conf.get("more_results", []):  # a session that went on after its first reply
+    p(dict({"type": "result", "subtype": "success", "is_error": False}, **r))
 '''
 
 
@@ -61,11 +63,13 @@ def setup(tmp_path):
     return bin_dir, snap, skill, token
 
 
-def run(tmp_path, bin_dir, *args, extra_skills="[]", hooks=(), bash=(), bash_out=None):
+def run(tmp_path, bin_dir, *args, extra_skills="[]", hooks=(), bash=(), bash_out=None,
+        more_results=()):
     write(str(bin_dir / "fake.json"), json.dumps({"args": str(tmp_path / "args.json"),
                                                   "extra_skills": json.loads(extra_skills),
                                                   "hooks": list(hooks), "bash": list(bash),
-                                                  "bash_out": bash_out or {}}))
+                                                  "bash_out": bash_out or {},
+                                                  "more_results": list(more_results)}))
     env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}", ANTHROPIC_API_KEY="k",
                CLAUDE_EFFORT="max")
     return subprocess.run([sys.executable, "-I", RUN, *args], env=env, capture_output=True, text=True)
@@ -288,3 +292,44 @@ def test_note_from_is_copied_untracked_and_allow_rules(tmp_path):
     r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(src), "--out", str(again),
             "--prompt", "hi", "--skill", str(skill), "--note-from", str(tmp_path / "runs/none"))
     assert r.returncode != 0 and "has no team/experience/" in r.stderr
+
+
+def test_every_result_event_counts(tmp_path):
+    """A session that ends its reply while a background task runs goes on and emits
+    another result: turns, time, tokens and denials sum over both; cost is cumulative."""
+    bin_dir, snap, skill, _ = setup(tmp_path)
+    out = tmp_path / "runs/twice-1"
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), more_results=[
+                {"num_turns": 0, "duration_ms": 40, "total_cost_usd": 0.01, "result": ""},
+                {"num_turns": 2, "duration_ms": 300, "duration_api_ms": 200, "total_cost_usd": 0.03,
+                 "result": "Fixed.", "permission_denials": [{"tool_use_id": "d1"}],
+                 "usage": {"input_tokens": 1, "output_tokens": 20, "cache_creation_input_tokens": 30,
+                           "cache_read_input_tokens": 400}}])
+    assert r.returncode == 0, r.stdout + r.stderr
+    m = json.load(open(out / "run.json"))["metrics"]
+    assert (m["result_events"], m["num_turns"], m["duration_ms"], m["duration_api_ms"]) == (3, 5, 1540, 1200)
+    assert (m["input_tokens"], m["output_tokens"], m["cache_creation_input_tokens"],
+            m["cache_read_input_tokens"]) == (6, 70, 130, 1300)
+    assert (m["permission_denials"], m["total_cost_usd"]) == (1, 0.03)
+    assert open(out / "result.md").read() == "## Briefing\nWaiting for go.\n\nFixed.\n"
+
+
+def test_skill_version_is_recorded(tmp_path):
+    """run.json names the skill's git commit in the with arm, and nothing without."""
+    bin_dir, snap, skill, _ = setup(tmp_path)
+    g = ["git", "-C", str(skill), "-c", "user.name=A", "-c", "user.email=a@b"]
+    subprocess.run(["git", "init", "-q", str(skill)], check=True)
+    subprocess.run(g + ["add", "-A"], check=True)
+    subprocess.run(g + ["commit", "-q", "-m", "skill"], check=True)
+    rev = subprocess.run(g + ["rev-parse", "--short", "HEAD"], capture_output=True,
+                         text=True).stdout.strip()
+    common = ["--src", str(snap), "--prompt", "hi", "--skill", str(skill)]
+    r = run(tmp_path, bin_dir, "--arm", "with", "--out", str(tmp_path / "runs/s-with-1"), *common)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert json.load(open(tmp_path / "runs/s-with-1/run.json"))["skill"] == rev
+    write(str(skill / "SKILL.md"), "changed\n")
+    r = run(tmp_path, bin_dir, "--arm", "with", "--out", str(tmp_path / "runs/s-with-2"), *common)
+    assert json.load(open(tmp_path / "runs/s-with-2/run.json"))["skill"].startswith(rev + "+changes-")
+    r = run(tmp_path, bin_dir, "--arm", "without", "--out", str(tmp_path / "runs/s-without-1"), *common)
+    assert json.load(open(tmp_path / "runs/s-without-1/run.json"))["skill"] is None
