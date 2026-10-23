@@ -296,19 +296,20 @@ def test_note_from_is_copied_untracked_and_allow_rules(tmp_path):
 
 def test_every_result_event_counts(tmp_path):
     """A session that ends its reply while a background task runs goes on and emits
-    another result: turns, time, tokens and denials sum over both; cost is cumulative."""
+    another result: turns, time, tokens and denials sum over all; cost and API time are
+    running totals."""
     bin_dir, snap, skill, _ = setup(tmp_path)
     out = tmp_path / "runs/twice-1"
     r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap), "--out", str(out),
             "--prompt", "hi", "--skill", str(skill), more_results=[
                 {"num_turns": 0, "duration_ms": 40, "total_cost_usd": 0.01, "result": ""},
-                {"num_turns": 2, "duration_ms": 300, "duration_api_ms": 200, "total_cost_usd": 0.03,
+                {"num_turns": 2, "duration_ms": 300, "duration_api_ms": 1250, "total_cost_usd": 0.03,
                  "result": "Fixed.", "permission_denials": [{"tool_use_id": "d1"}],
                  "usage": {"input_tokens": 1, "output_tokens": 20, "cache_creation_input_tokens": 30,
                            "cache_read_input_tokens": 400}}])
     assert r.returncode == 0, r.stdout + r.stderr
     m = json.load(open(out / "run.json"))["metrics"]
-    assert (m["result_events"], m["num_turns"], m["duration_ms"], m["duration_api_ms"]) == (3, 5, 1540, 1200)
+    assert (m["result_events"], m["num_turns"], m["duration_ms"], m["duration_api_ms"]) == (3, 5, 1540, 1250)
     assert (m["input_tokens"], m["output_tokens"], m["cache_creation_input_tokens"],
             m["cache_read_input_tokens"]) == (6, 70, 130, 1300)
     assert (m["permission_denials"], m["total_cost_usd"]) == (1, 0.03)

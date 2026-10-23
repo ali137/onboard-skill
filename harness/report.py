@@ -111,7 +111,7 @@ def change(pct):
     """'20% lower' for a cut, '3% higher' for a rise."""
     if pct is None:
         return "–"
-    return f"{fmt(abs(pct), 0)}% {'lower' if pct >= 0 else 'higher'}"
+    return f"{fmt(abs(pct), 0)}% {'lower' if round(pct) >= 0 else 'higher'}"
 
 
 def main():

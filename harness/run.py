@@ -310,13 +310,15 @@ def tool_calls(events):
 
 def merged_result(events):
     """One result from every `result` event. A session that ends its reply while a
-    background task still runs goes on and emits another; each event counts only its
-    own segment, except total_cost_usd, which is cumulative."""
+    background task still runs goes on and emits another. num_turns, duration_ms, usage
+    and permission_denials count only their own segment and are summed; total_cost_usd,
+    duration_api_ms and modelUsage are running totals, so the last event's value stands
+    (subagent_stats too, assumed cumulative: no run so far spawned a subagent)."""
     rs = [e for e in events if e.get("type") == "result"]
     if not rs:
         return {}
     merged = dict(rs[-1])
-    for k in ("num_turns", "duration_ms", "duration_api_ms"):
+    for k in ("num_turns", "duration_ms"):
         merged[k] = sum(r.get(k) or 0 for r in rs)
     merged["usage"] = {k: sum((r.get("usage") or {}).get(k) or 0 for r in rs)
                        for k in ("input_tokens", "output_tokens", "cache_creation_input_tokens",
