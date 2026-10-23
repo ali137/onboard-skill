@@ -1,0 +1,12 @@
+{
+  "name": "tallowmere-lending",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Lending app for the Tallowmere Tool Library",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "start": "node src/server.ts",
+    "test": "node --test"
+  }
+}

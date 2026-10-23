@@ -1,0 +1,30 @@
+{
+  "test_command": [
+    "node",
+    "--test"
+  ],
+  "bugs": {
+    "hold-order": {
+      "file": "src/holds.ts",
+      "find": "  const firstPerMember = new Map<string, Hold>();\n  for (const hold of open) {\n    if (!firstPerMember.has(hold.memberNo)) firstPerMember.set(hold.memberNo, hold);\n  }\n  return [...firstPerMember.values()];\n",
+      "replace": "  const firstPerMember: Record<string, Hold> = {};\n  for (const hold of open) {\n    if (!(hold.memberNo in firstPerMember)) firstPerMember[hold.memberNo] = hold;\n  }\n  return Object.values(firstPerMember);\n",
+      "test": "test/returns.test.ts",
+      "test_names": [
+        "a returned tool is held for the member who asked first"
+      ],
+      "note": null,
+      "acceptance": "acceptance/hold-order.test.ts"
+    },
+    "tag-regex": {
+      "file": "src/tools.ts",
+      "find": "const TAG_CELL = /^\\s*([A-Za-z]{2})[\\s-]?(\\d{4})\\s*$/;\n",
+      "replace": "const TAG_CELL = /^\\s*([A-Za-z]{2})[\\s-]?(\\d{4})\\s*$/g;\n",
+      "test": "test/import.test.ts",
+      "test_names": [
+        "imports every row of a new inventory sheet",
+        "a re-import updates every tool and adds none"
+      ],
+      "note": null
+    }
+  }
+}

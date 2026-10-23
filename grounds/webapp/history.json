@@ -1,0 +1,339 @@
+{
+  "authors": {
+    "wren": "Wren Ostby <wren@tallowmere-tools.example>",
+    "pell": "Pell Hadrick <pell.hadrick@fernpost.example>",
+    "juno": "Juno Varrick <juno.v@larkpost.example>",
+    "odile": "Odile Brask <odile@tallowmere-tools.example>"
+  },
+  "commits": [
+    {
+      "id": "init",
+      "dir": "01-init",
+      "author": "wren",
+      "date": "2026-06-27T14:12:00+01:00",
+      "message": "initial commit"
+    },
+    {
+      "id": "members",
+      "dir": "02-members",
+      "author": "wren",
+      "date": "2026-06-28T20:41:00+01:00",
+      "message": "json store + members"
+    },
+    {
+      "id": "catalog",
+      "dir": "03-catalog",
+      "author": "wren",
+      "date": "2026-06-30T21:05:00+01:00",
+      "message": "catalog"
+    },
+    {
+      "id": "calendar",
+      "dir": "04-calendar",
+      "author": "wren",
+      "date": "2026-07-02T19:33:00+01:00",
+      "message": "calendar: open days, closures"
+    },
+    {
+      "id": "loans",
+      "dir": "05-loans",
+      "author": "wren",
+      "date": "2026-07-05T11:20:00+01:00",
+      "message": "checkout and return"
+    },
+    {
+      "id": "loans-tests",
+      "dir": "06-loans-tests",
+      "author": "wren",
+      "date": "2026-07-05T16:48:00+01:00",
+      "message": "more tests"
+    },
+    {
+      "id": "auth",
+      "dir": "07-auth",
+      "author": "pell",
+      "date": "2026-07-08T22:10:00+01:00",
+      "message": "auth: staff + member login, scrypt"
+    },
+    {
+      "id": "auth-fix",
+      "dir": "08-auth-fix",
+      "author": "pell",
+      "date": "2026-07-09T08:15:00+01:00",
+      "message": "fix"
+    },
+    {
+      "id": "fees",
+      "dir": "09-fees",
+      "author": "juno",
+      "date": "2026-07-12T13:40:00-04:00",
+      "message": "fees: late fees per day w/ cap"
+    },
+    {
+      "id": "fees-grace",
+      "dir": "10-fees-grace",
+      "author": "juno",
+      "date": "2026-07-14T18:22:00-04:00",
+      "message": "fees: grace days"
+    },
+    {
+      "id": "fees-grace-fixup",
+      "dir": "11-fees-grace-fixup",
+      "author": "juno",
+      "date": "2026-07-14T19:05:00-04:00",
+      "message": "fixup! fees: grace days"
+    },
+    {
+      "id": "due-dates-as-date",
+      "dir": "12-due-dates-as-date",
+      "author": "juno",
+      "date": "2026-07-16T20:30:00-04:00",
+      "message": "loans: use Date for due dates"
+    },
+    {
+      "id": "revert-dates",
+      "dir": "13-revert-dates",
+      "author": "wren",
+      "date": "2026-07-19T10:02:00+01:00",
+      "message": "Revert \"loans: use Date for due dates\"\n\nThis reverts commit {{commit:due-dates-as-date}}.\n\nDue dates came out a day early on Juno's machine (UTC-4). Keep dates as\nYYYY-MM-DD strings, see calendar.ts."
+    },
+    {
+      "id": "renewals",
+      "dir": "14-renewals",
+      "author": "pell",
+      "date": "2026-07-22T21:17:00+01:00",
+      "message": "renewals"
+    },
+    {
+      "id": "views",
+      "dir": "15-views",
+      "author": "odile",
+      "date": "2026-07-25T15:44:00+01:00",
+      "message": "basic html pages: catalog + member"
+    },
+    {
+      "id": "views-typo",
+      "dir": "16-views-typo",
+      "author": "odile",
+      "date": "2026-07-26T09:51:00+01:00",
+      "message": "typo"
+    },
+    {
+      "id": "holds",
+      "dir": "17-holds",
+      "author": "pell",
+      "date": "2026-07-29T22:36:00+01:00",
+      "message": "holds / waiting list"
+    },
+    {
+      "id": "holds-promote",
+      "dir": "18-holds-promote",
+      "author": "pell",
+      "date": "2026-07-31T20:03:00+01:00",
+      "message": "promote next hold on return"
+    },
+    {
+      "id": "notify",
+      "dir": "19-notify",
+      "author": "pell",
+      "date": "2026-08-03T21:48:00+01:00",
+      "message": "notifications outbox (no email yet)"
+    },
+    {
+      "id": "reports",
+      "dir": "20-reports",
+      "author": "juno",
+      "date": "2026-08-06T17:25:00-04:00",
+      "message": "reports: overdue, popular"
+    },
+    {
+      "id": "reports-wip",
+      "dir": "21-reports-wip",
+      "author": "juno",
+      "date": "2026-08-08T19:12:00-04:00",
+      "message": "wip"
+    },
+    {
+      "id": "reports-fees",
+      "dir": "22-reports-fees",
+      "author": "juno",
+      "date": "2026-08-09T14:37:00-04:00",
+      "message": "reports: fees outstanding, fix sort"
+    },
+    {
+      "id": "split-start",
+      "dir": "23-split-start",
+      "author": "wren",
+      "date": "2026-08-12T20:55:00+01:00",
+      "message": "start splitting store.ts into src/repos (members first)"
+    },
+    {
+      "id": "limits",
+      "dir": "24-limits",
+      "author": "pell",
+      "date": "2026-08-15T10:41:00+01:00",
+      "message": "loan limits per category"
+    },
+    {
+      "id": "limits-wip",
+      "dir": "25-limits-wip",
+      "author": "pell",
+      "date": "2026-08-15T17:09:00+01:00",
+      "message": "wip"
+    },
+    {
+      "id": "limits-tests",
+      "dir": "26-limits-tests",
+      "author": "pell",
+      "date": "2026-08-17T21:30:00+01:00",
+      "message": "more tests"
+    },
+    {
+      "id": "config",
+      "dir": "27-config",
+      "author": "wren",
+      "date": "2026-08-21T19:14:00+01:00",
+      "message": "move the numbers into config.ts"
+    },
+    {
+      "id": "cleanup",
+      "dir": "28-cleanup",
+      "author": "juno",
+      "date": "2026-08-28T16:50:00-04:00",
+      "message": "small cleanups"
+    },
+    {
+      "id": "csv",
+      "dir": "29-csv",
+      "author": "pell",
+      "date": "2026-09-02T22:04:00+01:00",
+      "message": "csv parser"
+    },
+    {
+      "id": "import",
+      "dir": "30-import",
+      "author": "pell",
+      "date": "2026-09-05T11:33:00+01:00",
+      "message": "inventory sheet import (staff only)"
+    },
+    {
+      "id": "import-tags",
+      "dir": "31-import-tags",
+      "author": "pell",
+      "date": "2026-09-08T21:26:00+01:00",
+      "message": "import: accept hand-typed tags (pt 0042, PT0042)"
+    },
+    {
+      "id": "import-header",
+      "dir": "32-import-header",
+      "author": "pell",
+      "date": "2026-09-09T07:58:00+01:00",
+      "message": "fix import header case"
+    },
+    {
+      "id": "agents-md",
+      "dir": "33-agents-md",
+      "author": "wren",
+      "date": "2026-09-12T12:15:00+01:00",
+      "message": "add AGENTS.md for the coding assistants people keep pointing at this repo"
+    },
+    {
+      "id": "staff-page",
+      "dir": "34-staff-page",
+      "author": "odile",
+      "date": "2026-09-16T19:40:00+01:00",
+      "message": "staff page: today's returns + holds ready"
+    },
+    {
+      "id": "suspend",
+      "dir": "35-suspend",
+      "author": "pell",
+      "date": "2026-09-19T15:02:00+01:00",
+      "message": "suspend / reinstate members"
+    },
+    {
+      "id": "fee-block",
+      "dir": "36-fee-block",
+      "author": "pell",
+      "date": "2026-09-23T21:51:00+01:00",
+      "message": "block checkout over the fee threshold"
+    },
+    {
+      "id": "review",
+      "dir": "37-review",
+      "author": "pell",
+      "date": "2026-09-24T20:19:00+01:00",
+      "message": "address review"
+    },
+    {
+      "id": "expire-holds",
+      "dir": "38-expire-holds",
+      "author": "pell",
+      "date": "2026-09-29T22:08:00+01:00",
+      "message": "expire holds that aren't picked up"
+    },
+    {
+      "id": "readme",
+      "dir": "39-readme",
+      "author": "odile",
+      "date": "2026-10-01T18:27:00+01:00",
+      "message": "readme"
+    },
+    {
+      "id": "hold-dedupe",
+      "dir": "40-hold-dedupe",
+      "author": "pell",
+      "date": "2026-10-05T21:34:00+01:00",
+      "message": "holds: one place in line per member"
+    },
+    {
+      "id": "renew-held",
+      "dir": "41-renew-held",
+      "author": "pell",
+      "date": "2026-10-06T22:12:00+01:00",
+      "message": "can't renew if someone is waiting"
+    },
+    {
+      "id": "split-resume",
+      "dir": "42-split-resume",
+      "author": "pell",
+      "date": "2026-10-09T20:46:00+01:00",
+      "message": "back on the store split"
+    },
+    {
+      "id": "repos-tools-wip",
+      "dir": "43-repos-tools-wip",
+      "author": "pell",
+      "date": "2026-10-13T23:05:00+01:00",
+      "message": "wip repos/tools"
+    },
+    {
+      "id": "agents-md-2",
+      "dir": "44-agents-md-2",
+      "author": "wren",
+      "date": "2026-10-14T13:20:00+01:00",
+      "message": "AGENTS.md: commands, ask-first list"
+    },
+    {
+      "id": "hold-message",
+      "dir": "45-hold-message",
+      "author": "odile",
+      "date": "2026-10-15T19:58:00+01:00",
+      "message": "nicer hold-ready message"
+    },
+    {
+      "id": "fix",
+      "dir": "46-fix",
+      "author": "pell",
+      "date": "2026-10-16T21:11:00+01:00",
+      "message": "fix"
+    },
+    {
+      "id": "last",
+      "dir": "47-last",
+      "author": "pell",
+      "date": "2026-10-20T21:40:00+01:00",
+      "message": "repos: tools + holds out of store.ts, update callers (loans next)"
+    }
+  ]
+}

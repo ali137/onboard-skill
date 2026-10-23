@@ -1,0 +1,260 @@
+{
+  "members": [
+    {
+      "memberNo": "1",
+      "name": "Marit Okonkwo-Hale",
+      "email": "marit@hollyfen.example",
+      "phone": "01632 960 118",
+      "address": "14 Gorse Row, Tallowmere",
+      "joinedOn": "2026-06-20"
+    },
+    {
+      "memberNo": "2",
+      "name": "Teodor Vane",
+      "email": "teo.vane@brackpost.example",
+      "phone": "01632 960 407",
+      "address": "3 Millrace Lane, Tallowmere",
+      "joinedOn": "2026-06-20"
+    },
+    {
+      "memberNo": "387",
+      "name": "Bettany Crull",
+      "email": "bettany.crull@hollyfen.example",
+      "phone": "01632 960 552",
+      "address": "Flat 2, 9 Lantern Street, Tallowmere",
+      "joinedOn": "2019-04-13"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "1",
+      "username": "counter",
+      "role": "staff",
+      "memberNo": null,
+      "salt": "5f0d2c8e9a1b4c7d0e3f6a9b2c5d8e1f",
+      "passwordHash": "e27d0f265c8778b2ce3bc0aa05179f6fd81cb330690a3f2b713d06074e545546"
+    },
+    {
+      "id": "2",
+      "username": "marit",
+      "role": "member",
+      "memberNo": "1",
+      "salt": "a39e17c40b6d2f85c1e4a7b0d3f6e9a2",
+      "passwordHash": "59c859207ec2a5138da2174ec3af1a8d4a3bf456d47b43d0b3eff9b565a560c6"
+    }
+  ],
+  "sessions": [],
+  "tools": [
+    {
+      "id": "1",
+      "tag": "PT-0001",
+      "name": "Cordless drill 18V",
+      "category": "PT",
+      "condition": "good",
+      "notes": "two batteries, charger in the case",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "2",
+      "tag": "PT-0002",
+      "name": "Hammer drill",
+      "category": "PT",
+      "condition": "good",
+      "notes": "masonry bits in the side pocket",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "3",
+      "tag": "PT-0004",
+      "name": "Jigsaw",
+      "category": "PT",
+      "condition": "fair",
+      "notes": "blade guard a bit loose",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "4",
+      "tag": "PT-0007",
+      "name": "Circular saw",
+      "category": "PT",
+      "condition": "good",
+      "notes": "",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "5",
+      "tag": "PT-0011",
+      "name": "Pressure washer",
+      "category": "PT",
+      "condition": "good",
+      "notes": "needs an outdoor socket",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "6",
+      "tag": "PT-0042",
+      "name": "Orbital sander",
+      "category": "PT",
+      "condition": "worn pad",
+      "notes": "sanding sheets sold separately",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "7",
+      "tag": "LD-0001",
+      "name": "Step ladder, 6 tread",
+      "category": "LD",
+      "condition": "good",
+      "notes": "",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "8",
+      "tag": "LD-0003",
+      "name": "Extension ladder 3.6 m",
+      "category": "LD",
+      "condition": "good",
+      "notes": "needs a car with roof bars",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "9",
+      "tag": "LD-0007",
+      "name": "Roof ladder",
+      "category": "LD",
+      "condition": "fair",
+      "notes": "hook end repainted 2025",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "10",
+      "tag": "GD-0002",
+      "name": "Lawn aerator",
+      "category": "GD",
+      "condition": "good",
+      "notes": "",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "11",
+      "tag": "GD-0005",
+      "name": "Hedge trimmer",
+      "category": "GD",
+      "condition": "good",
+      "notes": "electric, 10 m cable",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "12",
+      "tag": "GD-0012",
+      "name": "Wheelbarrow",
+      "category": "GD",
+      "condition": "tire patched",
+      "notes": "",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "13",
+      "tag": "SW-0001",
+      "name": "Sewing machine",
+      "category": "SW",
+      "condition": "good",
+      "notes": "manual in the lid",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "14",
+      "tag": "SW-0003",
+      "name": "Overlocker",
+      "category": "SW",
+      "condition": "good",
+      "notes": "threaded for black",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "15",
+      "tag": "HT-0010",
+      "name": "Socket set",
+      "category": "HT",
+      "condition": "two sockets missing",
+      "notes": "8 mm and 13 mm gone",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    },
+    {
+      "id": "16",
+      "tag": "HT-0014",
+      "name": "Tile cutter",
+      "category": "HT",
+      "condition": "good",
+      "notes": "",
+      "retired": false,
+      "addedOn": "2026-06-27"
+    }
+  ],
+  "loans": [
+    {
+      "id": "1",
+      "toolId": "5",
+      "memberNo": "2",
+      "checkedOut": "2026-07-04",
+      "due": "2026-07-11",
+      "renewals": 0,
+      "returned": null
+    },
+    {
+      "id": "2",
+      "toolId": "13",
+      "memberNo": "387",
+      "checkedOut": "2026-07-03",
+      "due": "2026-07-17",
+      "renewals": 0,
+      "returned": null
+    }
+  ],
+  "holds": [
+    {
+      "id": "1",
+      "toolId": "5",
+      "memberNo": "1",
+      "requestedOn": "2026-07-07",
+      "status": "waiting",
+      "readyOn": null,
+      "pickupBy": null
+    },
+    {
+      "id": "2",
+      "toolId": "13",
+      "memberNo": "2",
+      "requestedOn": "2026-07-08",
+      "status": "waiting",
+      "readyOn": null,
+      "pickupBy": null
+    }
+  ],
+  "fees": [],
+  "outbox": [],
+  "counters": {
+    "member": 2,
+    "account": 2,
+    "tool": 16,
+    "loan": 2,
+    "hold": 2,
+    "fee": 0,
+    "message": 0
+  }
+}

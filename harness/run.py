@@ -177,8 +177,9 @@ def keep_history(work, rewritten, planted, skill_name, arm, notes=()):
     """With the source's history kept, hide what the harness changed: the skill and
     copied notes are git-excluded (untracked, unseen), and rewritten, planted or
     note-appended tracked files are folded into HEAD with its own author, date and
-    message; refs that pointed at the old HEAD follow it, and the reflog is cleared.
-    The source's own uncommitted work stays uncommitted."""
+    message; refs that pointed at the old HEAD follow it, the reflog is cleared, and
+    the old HEAD is pruned (else `git fsck` finds it and a diff against it shows every
+    harness change). The source's own uncommitted work stays uncommitted."""
     g = ["git", "-C", work]
     if arm == "with":
         with open(f"{work}/.git/info/exclude", "a") as f:
@@ -210,6 +211,7 @@ def keep_history(work, rewritten, planted, skill_name, arm, notes=()):
         if obj == old and not symref:
             subprocess.run(g + ["update-ref", ref, new, old], check=True)
     subprocess.run(g + ["reflog", "expire", "--expire=now", "--all"], check=True)
+    subprocess.run(g + ["gc", "-q", "--prune=now"], check=True)
     return "kept, harness changes folded into HEAD"
 
 
@@ -281,7 +283,7 @@ def outside_paths(calls, work):
 
 
 GIT_HISTORY = re.compile(r"(?:^|\s)git(?:\s+-[Cc]\s+\S+|\s+--?[\w.-]+(?:=\S+)?)*"
-                         r"\s+(log|show|blame|reflog|rev-list|whatchanged|cat-file)\b")
+                         r"\s+(log|show|blame|reflog|rev-list|whatchanged|cat-file|fsck)\b")
 
 
 def git_history_calls(calls):

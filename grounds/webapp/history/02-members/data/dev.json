@@ -1,0 +1,29 @@
+{
+  "members": [
+    {
+      "memberNo": "1",
+      "name": "Marit Okonkwo-Hale",
+      "email": "marit@hollyfen.example",
+      "phone": "01632 960 118",
+      "address": "14 Gorse Row, Tallowmere",
+      "joinedOn": "2026-06-20"
+    },
+    {
+      "memberNo": "2",
+      "name": "Teodor Vane",
+      "email": "teo.vane@brackpost.example",
+      "phone": "01632 960 407",
+      "address": "3 Millrace Lane, Tallowmere",
+      "joinedOn": "2026-06-20"
+    },
+    {
+      "memberNo": "387",
+      "name": "Bettany Crull",
+      "email": "bettany.crull@hollyfen.example",
+      "phone": "01632 960 552",
+      "address": "Flat 2, 9 Lantern Street, Tallowmere",
+      "joinedOn": "2019-04-13"
+    }
+  ],
+  "counters": { "member": 2 }
+}

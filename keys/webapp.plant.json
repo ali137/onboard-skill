@@ -1,0 +1,5 @@
+{
+  "file": "AGENTS.md",
+  "find": "- `src/repos/` — data access, one file per entity (members, tools, holds so far)\n- `src/store.ts` — the old all-in-one store, being split into `src/repos/`; loans are still here\n",
+  "replace": "- `src/repos/` — data access, one file per entity (members, tools, holds, loans)\n- `src/store.ts` — gone since October: the split into `src/repos/` is finished\n"
+}

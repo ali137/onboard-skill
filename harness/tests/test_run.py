@@ -147,6 +147,7 @@ def test_keep_git(tmp_path):
     subprocess.run(g + ["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"],
                    check=True)  # as in a real clone
     write(str(src / "README.md"), "hi, edited but not committed\n")
+    old = subprocess.run(g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     plant = tmp_path / "plant.json"
     write(str(plant), json.dumps({"file": "PHASES.md", "find": "| active | |",
                                   "replace": "| done | 2026-01-01 |"}))
@@ -162,6 +163,8 @@ def test_keep_git(tmp_path):
     assert q("rev-parse", "HEAD") == q("rev-parse", "refs/remotes/origin/main")
     assert q("symbolic-ref", "refs/remotes/origin/HEAD") == "refs/remotes/origin/main\n"
     assert q("reflog") == ""
+    assert q("fsck", "--unreachable", "--no-reflogs") == ""  # the old HEAD is gone,
+    assert subprocess.run(w + ["cat-file", "-e", old]).returncode != 0  # so no diff shows the plant
     assert json.load(open(out / "run.json"))["git"].startswith("kept")
 
 
@@ -183,7 +186,8 @@ def test_prepare_is_folded_and_git_reads_recorded(tmp_path):
             "--prompt", "hi", "--skill", str(skill), "--keep-git",
             "--prepare", f"{sys.executable} -I {seed} bug-1", "--watch", "abc123",
             "--watch", "fix: the subject",
-            bash=["git log --oneline -- app.py", "ls; git status", "git show abc123", "git diff"],
+            bash=["git log --oneline -- app.py", "ls; git status", "git show abc123", "git diff",
+                  "git fsck --lost-found"],
             bash_out={"git log --oneline -- app.py": "abc1234 fix: the subject (#1)"})
     assert r.returncode == 0, r.stdout + r.stderr
     w = ["git", "-C", str(out / "work")]
@@ -194,7 +198,8 @@ def test_prepare_is_folded_and_git_reads_recorded(tmp_path):
     assert open(out / "prepare.log").read() == "seeded bug-1\n"
     rec = json.load(open(out / "run.json"))
     assert rec["prepared"] == ["app.py"]
-    assert rec["metrics"]["git_history_calls"] == ["git log --oneline -- app.py", "git show abc123"]
+    assert rec["metrics"]["git_history_calls"] == ["git log --oneline -- app.py", "git show abc123",
+                                                     "git fsck --lost-found"]
     hits = rec["metrics"]["watch_hits"]
     assert [(h["in_input"], h["in_result"]) for h in hits] == [
         ([], ["abc123", "fix: the subject"]), (["abc123"], [])]

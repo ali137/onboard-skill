@@ -1,0 +1,5 @@
+{
+  "file": "AGENTS.md",
+  "find": "- Run one test file: `node --test test/loans.test.ts`",
+  "replace": "- Run one test file: `npm run test:file test/loans.test.ts`"
+}
