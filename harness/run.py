@@ -549,7 +549,7 @@ def main():
         "env_keys": sorted(k for k in env if "TOKEN" not in k),
         "paths_rewritten_files": rewritten, "planted": planted,
         "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
-        "allow": allow, "watch": a.watch, "wall_s": wall,
+        "allow": allow, "watch": a.watch, "max_turns": a.max_turns, "wall_s": wall,
         "metrics": metrics(calls, result, work, tool_results(events), a.watch), "checks": checks,
     }
     json.dump(record, open(f"{out}/run.json", "w"), indent=2)

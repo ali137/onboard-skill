@@ -408,7 +408,7 @@ def test_subagent_prompts_and_edits(tmp_path):
     assert r.returncode == 0, r.stdout + r.stderr
     rec = json.load(open(out / "run.json"))
     m = rec["metrics"]
-    assert rec["watch"] == [note]
+    assert rec["watch"] == [note] and rec["max_turns"] == "30"
     assert [(p["description"], p["subagent_type"], p["watch_in_prompt"]) for p in m["subagent_prompts"]] \
         == [("fix it", "general-purpose", [note]), ("look", None, [])]
     assert m["subagent_prompts"][0]["prompt"].startswith("Fix the bug.")

@@ -11,8 +11,9 @@ belongs to garden-with; walk-note-3 to walk-note).
 
 Tokens: "tokens" is input + output + cache-creation tokens (cache reads are
 shown but not summed: they dominate and are cheap). Watch hits are split: a
-hit whose tool call names team/experience/ came through a note, any other is
-a leak (git history, changelog).
+hit whose tool call names team/experience/, or a subagent's prompt holding a
+watch string (a hand-down), came through a note; any other is a leak (git
+history, changelog).
 
 Bars:
 - onboarding, per graded with-arm condition: every run has a sound
@@ -76,7 +77,8 @@ def row(d):
     m = run.get("metrics", {})
     name = os.path.basename(os.path.normpath(d))
     hits = m.get("watch_hits") or []
-    via_note = sum(1 for h in hits if NOTES in h.get("input", ""))
+    via_note = sum(1 for h in hits if NOTES in h.get("input", "")
+                   or (h.get("tool") in ("Agent", "Task") and h.get("in_input")))
     toks = [m.get(k) for k in ("input_tokens", "output_tokens", "cache_creation_input_tokens")]
     index_read, note_read = note_reads(d)
     return {

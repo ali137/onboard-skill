@@ -15,7 +15,7 @@ def make(root, name, arm="with", tools=10, tokens=(1, 9, 90), grade=None, fixed=
          "input_tokens": tokens[0], "output_tokens": tokens[1],
          "cache_creation_input_tokens": tokens[2], "cache_read_input_tokens": 5000,
          "duration_ms": tools * 1000, "permission_denials": 0, "outside_paths": [],
-         "watch_hits": [{"input": i} for i in hits]}
+         "watch_hits": [h if isinstance(h, dict) else {"input": h} for h in hits]}
     if prompts is not None:
         m.update(subagent_prompts=[{"prompt": "p", "watch_in_prompt": w} for w in prompts],
                  edits_main=edits[0], edits_subagents=edits[1])
@@ -89,12 +89,15 @@ def test_speed_bar_fails_on_an_unfixed_note_run(tmp_path):
 def test_handdown_bar(tmp_path):
     """A hand-down: fixed, a subagent edited, and a subagent's prompt holds the note path."""
     note = ["team/experience/n.md"]
-    ok = [make(tmp_path, f"handdown-{i}", fixed=True, prompts=[[], note], edits=(0, 2))
-          for i in (1, 2)]
+    # the Agent call's saved input is cut at 300 characters, past which the note path may sit
+    agent_hit = {"tool": "Agent", "input": '{"prompt": "Fix the bug.', "in_input": note}
+    ok = [make(tmp_path, f"handdown-{i}", fixed=True, prompts=[[], note], edits=(0, 2),
+               hits=[agent_hit, "cat team/experience/n.md"]) for i in (1, 2)]
     out = report(*ok)
     assert "Hand-down, handdown:** passed. Fixed: 2/2; a subagent edited: 2/2; " \
            "the note path in a subagent's prompt: 2/2." in out
     assert "| handdown-1 | with | yes |" in out and "| 2 | yes | 0 / 2 |" in out
+    assert "| 0 / 2 | 2 | yes | 0 / 2 |" in out  # watch hits leak / note, prompts, note, edits
     assert "Onboarding bar" not in out
     bad = [make(tmp_path, "b/handdown-1", fixed=True, prompts=[[]], edits=(0, 1)),
            make(tmp_path, "b/handdown-2", fixed=True, prompts=[note], edits=(3, 0)),
