@@ -21,6 +21,9 @@ Bars:
 - experience note, per bug with both <bug>-cold and <bug>-note runs:
   every with-note run is fixed, and the with-note medians of tool calls and of
   tokens are each at least 30% below the cold medians.
+- hand-down, per condition named "handdown" (handdown-1, ...): every run
+  is fixed, a subagent made at least one edit, and a subagent's prompt contains
+  a --watch string (the matching note's path). run.json lists each prompt.
 """
 import argparse
 import json
@@ -87,6 +90,10 @@ def row(d):
         "named": fixed.get("named_status"), "failed_tests": len(fixed.get("failed") or []) if fixed else None,
         "watch_leak": len(hits) - via_note if run else None, "watch_note": via_note if run else None,
         "index_read": index_read, "note_read": note_read, "notes_given": bool(run.get("notes")),
+        "prompts": len(m["subagent_prompts"]) if "subagent_prompts" in m else None,
+        "note_in_prompt": any(p["watch_in_prompt"] for p in m["subagent_prompts"])
+        if "subagent_prompts" in m else None,
+        "edits_main": m.get("edits_main"), "edits_sub": m.get("edits_subagents"),
         "denials": m.get("permission_denials"), "outside": len(m.get("outside_paths") or []),
         "format_ok": form.get("ok"), "turns": m.get("num_turns"),
         "tools": m.get("tool_calls"), "sub_tools": m.get("tool_calls_subagents"),
@@ -125,20 +132,24 @@ def main():
     rows = [row(d) for d in a.runs]
     yn = {True: "yes", False: "no", None: "–"}
     bug_runs = any(r["fixed"] is not None for r in rows)
+    hand = any("handdown" in r["condition"] for r in rows)
 
     print(f"# {a.title}\n")
     print("| run | arm | setup ok | score /8 | claim caught | passes bar | format ok "
           + ("| fixed | named test | failing tests | index read | note read | watch hits: leak / note "
              if bug_runs else "")
+          + ("| subagent prompts | note path in a prompt | edits: main / subagent " if hand else "")
           + "| turns | tool calls (subagent) | denied | outside paths | input | output | cache write "
             "| cache read | tokens | seconds |")
-    print("|---" * (17 + (6 if bug_runs else 0)) + "|")
+    print("|---" * (17 + (6 if bug_runs else 0) + (3 if hand else 0)) + "|")
     for r in rows:
         print(f"| {r['run']} | {r['arm']} | {yn[r['setup_ok']]} | {fmt(r['score'])} "
               f"| {yn[r['caught']]} | {yn[r['passes']]} | {yn[r['format_ok']]} "
               + (f"| {yn[r['fixed']]} | {fmt(r['named'])} | {fmt(r['failed_tests'])} "
                  f"| {yn[r['index_read']]} | {yn[r['note_read']]} "
                  f"| {fmt(r['watch_leak'])} / {fmt(r['watch_note'])} " if bug_runs else "")
+              + (f"| {fmt(r['prompts'])} | {yn[r['note_in_prompt']]} "
+                 f"| {fmt(r['edits_main'])} / {fmt(r['edits_sub'])} " if hand else "")
               + f"| {fmt(r['turns'])} | {fmt(r['tools'])} ({fmt(r['sub_tools'])}) | {fmt(r['denials'])} "
               f"| {fmt(r['outside'])} | {fmt(r['in'])} | {fmt(r['out'])} | {fmt(r['cache_w'])} "
               f"| {fmt(r['cache_r'])} | {fmt(r['tokens'])} | {fmt(r['secs'], 1)} |")
@@ -183,6 +194,16 @@ def main():
                      f"median tokens {fmt(med(cold, 'tokens'))} → {fmt(med(note, 'tokens'))} "
                      f"({change(k_cut)}); median seconds {fmt(med(cold, 'secs'), 1)} → "
                      f"{fmt(med(note, 'secs'), 1)} ({change(s_cut)}).")
+    for c, rs in groups.items():
+        if "handdown" not in c:
+            continue
+        n = len(rs)
+        count = lambda f: sum(1 for r in rs if f(r))
+        ok = all(r["fixed"] and r["edits_sub"] and r["note_in_prompt"] for r in rs)
+        lines.append(f"- **Hand-down, {c}:** {'passed' if ok else 'failed'}. Fixed: "
+                     f"{count(lambda r: r['fixed'])}/{n}; a subagent edited: "
+                     f"{count(lambda r: r['edits_sub'])}/{n}; the note path in a subagent's "
+                     f"prompt: {count(lambda r: r['note_in_prompt'])}/{n}.")
     if lines:
         print("\n" + "\n".join(lines))
 

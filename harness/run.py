@@ -34,7 +34,8 @@ in them), so paths it names outside the copy are recorded instead.
 Writes stream.jsonl, stderr.log, init.json, result.md and run.json (setup
 checks, the harness's and the skill's git versions, and metrics summed over every
 result event: turns, the four token counts, time, tool calls deduplicated
-by id and split into main agent and subagents, permission denials, paths
+by id and split into main agent and subagents, each subagent's prompt (and
+the --watch strings in it), file edits by main agent and subagents, permission denials, paths
 named outside the copy, Bash commands that read git history, and tool calls
 whose input or result contains a --watch string). Exits 1 if the run's skill list does not match its
 arm, a user skill, MCP server, plugin or undeclared hook loaded, a --token-file
@@ -324,6 +325,25 @@ def watch_hits(calls, results, watch):
     return hits
 
 
+AGENT_TOOLS = ("Agent", "Task")  # the tool that starts a subagent (Task in older versions)
+EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
+
+
+def subagent_prompts(calls, watch=()):
+    """The main agent's calls that start a subagent: its type, description and prompt,
+    and which --watch strings the prompt contains (a hand-down passes the matching
+    notes' paths)."""
+    out = []
+    for name, parent, inp in calls.values():
+        if name in AGENT_TOOLS and parent is None:
+            inp = inp or {}
+            prompt = inp.get("prompt") or ""
+            out.append({"subagent_type": inp.get("subagent_type"),
+                        "description": inp.get("description"), "prompt": prompt,
+                        "watch_in_prompt": [w for w in watch if w in prompt]})
+    return out
+
+
 def tool_calls(events):
     """{id: (name, parent_tool_use_id, input)}: tool_use blocks, deduplicated by id."""
     calls = {}
@@ -340,7 +360,7 @@ def merged_result(events):
     background task still runs goes on and emits another. num_turns, duration_ms, usage
     and permission_denials count only their own segment and are summed; total_cost_usd,
     duration_api_ms and modelUsage are running totals, so the last event's value stands
-    (subagent_stats too, assumed cumulative: no run so far spawned a subagent)."""
+    (subagent_stats too: cumulative, the same in every event of phase 8's hand-down trial)."""
     rs = [e for e in events if e.get("type") == "result"]
     if not rs:
         return {}
@@ -375,6 +395,9 @@ def metrics(calls, result, work, results=None, watch=()):
         "tool_calls_subagents": sum(1 for _, p, _ in calls.values() if p is not None),
         "subagents": len({p for _, p, _ in calls.values() if p is not None}),
         "subagents_spawned": (result.get("subagent_stats") or {}).get("spawned"),
+        "subagent_prompts": subagent_prompts(calls, watch),
+        "edits_main": sum(1 for n, p, _ in calls.values() if n in EDIT_TOOLS and p is None),
+        "edits_subagents": sum(1 for n, p, _ in calls.values() if n in EDIT_TOOLS and p is not None),
         "permission_denials": len(result.get("permission_denials") or []),
         "tools": dict(Counter(n for n, _, _ in calls.values()).most_common()),
         "outside_paths": outside_paths(calls, work),
@@ -526,7 +549,7 @@ def main():
         "env_keys": sorted(k for k in env if "TOKEN" not in k),
         "paths_rewritten_files": rewritten, "planted": planted,
         "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
-        "allow": allow, "wall_s": wall,
+        "allow": allow, "watch": a.watch, "wall_s": wall,
         "metrics": metrics(calls, result, work, tool_results(events), a.watch), "checks": checks,
     }
     json.dump(record, open(f"{out}/run.json", "w"), indent=2)

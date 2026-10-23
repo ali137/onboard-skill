@@ -29,6 +29,8 @@ for n, c in enumerate(conf.get("bash", [])):
        {"type": "tool_use", "id": f"b{n}", "name": "Bash", "input": {"command": c}}]}})
     p({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": f"b{n}",
        "content": conf.get("bash_out", {}).get(c, "")}]}})
+for e in conf.get("events", []):
+    p(e)
 p({"type": "result", "subtype": "success", "is_error": False, "num_turns": 3, "duration_ms": 1200,
    "duration_api_ms": 1000, "total_cost_usd": 0.01, "result": "## Briefing\nWaiting for go.",
    "usage": {"input_tokens": 5, "output_tokens": 50, "cache_creation_input_tokens": 100,
@@ -64,12 +66,13 @@ def setup(tmp_path):
 
 
 def run(tmp_path, bin_dir, *args, extra_skills="[]", hooks=(), bash=(), bash_out=None,
-        more_results=()):
+        more_results=(), events=()):
     write(str(bin_dir / "fake.json"), json.dumps({"args": str(tmp_path / "args.json"),
                                                   "extra_skills": json.loads(extra_skills),
                                                   "hooks": list(hooks), "bash": list(bash),
                                                   "bash_out": bash_out or {},
-                                                  "more_results": list(more_results)}))
+                                                  "more_results": list(more_results),
+                                                  "events": list(events)}))
     env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}", ANTHROPIC_API_KEY="k",
                CLAUDE_EFFORT="max")
     return subprocess.run([sys.executable, "-I", RUN, *args], env=env, capture_output=True, text=True)
@@ -382,3 +385,31 @@ def test_skill_version_is_recorded(tmp_path):
     assert json.load(open(tmp_path / "runs/s-with-2/run.json"))["skill"].startswith(rev + "+changes-")
     r = run(tmp_path, bin_dir, "--arm", "without", "--out", str(tmp_path / "runs/s-without-1"), *common)
     assert json.load(open(tmp_path / "runs/s-without-1/run.json"))["skill"] is None
+
+
+def test_subagent_prompts_and_edits(tmp_path):
+    """A hand-down: the main agent's Agent call is recorded with its prompt and the
+    --watch strings in it; edits are split by who made them."""
+    bin_dir, snap, skill, _ = setup(tmp_path)
+    out = tmp_path / "runs/handdown-1"
+    note = "team/experience/2026-01-01-x.md"
+    def use(i, name, inp, parent=None):
+        return {"type": "assistant", "parent_tool_use_id": parent,
+                "message": {"content": [{"type": "tool_use", "id": i, "name": name, "input": inp}]}}
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), "--watch", note, events=[
+                use("a1", "Agent", {"description": "fix it", "subagent_type": "general-purpose",
+                                    "prompt": f"Fix the bug. Read {note}: same shared-data cause."}),
+                use("a2", "Task", {"description": "look", "prompt": "Look around."}),
+                use("e1", "Edit", {"file_path": "x.py"}, parent="a1"),
+                use("e2", "Write", {"file_path": "y.py"}, parent="a1"),
+                use("e3", "Edit", {"file_path": "x.py"}),
+                use("n1", "Agent", {"prompt": note}, parent="a1")])  # a subagent's own subagent
+    assert r.returncode == 0, r.stdout + r.stderr
+    rec = json.load(open(out / "run.json"))
+    m = rec["metrics"]
+    assert rec["watch"] == [note]
+    assert [(p["description"], p["subagent_type"], p["watch_in_prompt"]) for p in m["subagent_prompts"]] \
+        == [("fix it", "general-purpose", [note]), ("look", None, [])]
+    assert m["subagent_prompts"][0]["prompt"].startswith("Fix the bug.")
+    assert (m["edits_main"], m["edits_subagents"]) == (1, 2)

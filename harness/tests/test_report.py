@@ -8,7 +8,7 @@ REPORT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 
 
 def make(root, name, arm="with", tools=10, tokens=(1, 9, 90), grade=None, fixed=None,
-         hits=(), reads=()):
+         hits=(), reads=(), prompts=None, edits=(0, 0)):
     d = root / name
     d.mkdir(parents=True)
     m = {"tool_calls": tools, "tool_calls_subagents": 0, "num_turns": tools + 1,
@@ -16,6 +16,9 @@ def make(root, name, arm="with", tools=10, tokens=(1, 9, 90), grade=None, fixed=
          "cache_creation_input_tokens": tokens[2], "cache_read_input_tokens": 5000,
          "duration_ms": tools * 1000, "permission_denials": 0, "outside_paths": [],
          "watch_hits": [{"input": i} for i in hits]}
+    if prompts is not None:
+        m.update(subagent_prompts=[{"prompt": "p", "watch_in_prompt": w} for w in prompts],
+                 edits_main=edits[0], edits_subagents=edits[1])
     (d / "run.json").write_text(json.dumps({"arm": arm, "ok": True, "metrics": m}))
     if grade:
         score, caught = grade
@@ -81,3 +84,27 @@ def test_speed_bar_fails_on_an_unfixed_note_run(tmp_path):
     out = report(make(tmp_path, "b-cold-1", tools=40, fixed=True),
                  make(tmp_path, "b-note-1", tools=10, tokens=(0, 0, 1), fixed=False))
     assert "Speed bar, b:** failed. With-note runs fixed: 0/1" in out
+
+
+def test_handdown_bar(tmp_path):
+    """A hand-down: fixed, a subagent edited, and a subagent's prompt holds the note path."""
+    note = ["team/experience/n.md"]
+    ok = [make(tmp_path, f"handdown-{i}", fixed=True, prompts=[[], note], edits=(0, 2))
+          for i in (1, 2)]
+    out = report(*ok)
+    assert "Hand-down, handdown:** passed. Fixed: 2/2; a subagent edited: 2/2; " \
+           "the note path in a subagent's prompt: 2/2." in out
+    assert "| handdown-1 | with | yes |" in out and "| 2 | yes | 0 / 2 |" in out
+    assert "Onboarding bar" not in out
+    bad = [make(tmp_path, "b/handdown-1", fixed=True, prompts=[[]], edits=(0, 1)),
+           make(tmp_path, "b/handdown-2", fixed=True, prompts=[note], edits=(3, 0)),
+           make(tmp_path, "b/handdown-3", fixed=False, prompts=[], edits=(0, 0))]
+    out = report(*bad)
+    assert "Hand-down, handdown:** failed. Fixed: 2/3; a subagent edited: 1/3; " \
+           "the note path in a subagent's prompt: 1/3." in out
+    assert "| 0 | no | 0 / 0 |" in out
+
+
+def test_no_handdown_columns_without_handdown_runs(tmp_path):
+    out = report(make(tmp_path, "garden-with-1", grade=(8, True)))
+    assert "subagent prompts" not in out and "Hand-down" not in out
