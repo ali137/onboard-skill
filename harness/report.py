@@ -107,6 +107,13 @@ def cut(cold, note):
     return None if not cold or note is None else 100 * (cold - note) / cold
 
 
+def change(pct):
+    """'20% lower' for a cut, '3% higher' for a rise."""
+    if pct is None:
+        return "–"
+    return f"{fmt(abs(pct), 0)}% {'lower' if pct >= 0 else 'higher'}"
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("runs", nargs="+", metavar="RUN", help="run folder holding run.json")
@@ -146,9 +153,10 @@ def main():
         n = len(rs)
         fixed = f"{sum(1 for r in rs if r['fixed'])}/{n}" if any(r["fixed"] is not None for r in rs) else "–"
         graded = sum(1 for r in rs if r["graded"])
+        caught = f"{sum(1 for r in rs if r['caught'])}/{n}" if graded else "–"
+        passes = f"{sum(1 for r in rs if r['passes'])}/{n}" if graded else "–"
         print(f"| {c} | {n} | {graded} | {fmt(med(rs, 'score'), 1)} "
-              f"| {sum(1 for r in rs if r['caught'])}/{n if graded else '–'} "
-              f"| {sum(1 for r in rs if r['passes'])}/{n if graded else '–'} | {fixed} "
+              f"| {caught} | {passes} | {fixed} "
               f"| {fmt(med(rs, 'turns'), 1)} | {fmt(med(rs, 'tools'), 1)} | {fmt(med(rs, 'tokens'))} "
               f"| {fmt(med(rs, 'secs'), 1)} |")
 
@@ -171,10 +179,10 @@ def main():
         lines.append(f"- **Speed bar, {bug}:** {'passed' if ok else 'failed'}. With-note runs fixed: "
                      f"{sum(1 for r in note if r['fixed'])}/{len(note)} (cold: "
                      f"{sum(1 for r in cold if r['fixed'])}/{len(cold)}). Median tool calls "
-                     f"{fmt(med(cold, 'tools'), 1)} → {fmt(med(note, 'tools'), 1)} ({fmt(t_cut, 0)}% lower); "
+                     f"{fmt(med(cold, 'tools'), 1)} → {fmt(med(note, 'tools'), 1)} ({change(t_cut)}); "
                      f"median tokens {fmt(med(cold, 'tokens'))} → {fmt(med(note, 'tokens'))} "
-                     f"({fmt(k_cut, 0)}% lower); median seconds {fmt(med(cold, 'secs'), 1)} → "
-                     f"{fmt(med(note, 'secs'), 1)} ({fmt(s_cut, 0)}% lower).")
+                     f"({change(k_cut)}); median seconds {fmt(med(cold, 'secs'), 1)} → "
+                     f"{fmt(med(note, 'secs'), 1)} ({change(s_cut)}).")
     if lines:
         print("\n" + "\n".join(lines))
 

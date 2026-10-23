@@ -60,7 +60,14 @@ def test_speed_bar_medians_tokens_and_note_reads(tmp_path):
     assert "Speed bar, walk:** passed" in out and "(30% lower)" in out and "(75% lower)" in out
     assert "| walk-cold-1 | with | yes | – | – | – | – | yes | passed | 0 | no | no | 1 / 0 |" in out
     assert "| walk-note-1 | with | yes | – | – | – | – | yes | passed | 0 | yes | yes | 0 / 1 |" in out
-    assert "| walk-cold | 3 | 0 |" in out and "| 3/3 | 31.0 | 30.0 | 2,000 |" in out
+    assert "| walk-cold | 3 | 0 | – | – | – | 3/3 | 31.0 | 30.0 | 2,000 |" in out
+
+
+def test_a_rise_reads_higher(tmp_path):
+    cold = [make(tmp_path, f"b-cold-{i}", tools=10, tokens=(0, 0, 100), fixed=True) for i in (1, 2)]
+    note = [make(tmp_path, f"b-note-{i}", tools=12, tokens=(0, 0, 50), fixed=True) for i in (1, 2)]
+    out = report(*cold, *note)
+    assert "10.0 → 12.0 (20% higher)" in out and "(50% lower)" in out
 
 
 def test_note_read_through_a_glob_but_not_a_folder_listing(tmp_path):
