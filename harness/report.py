@@ -1,18 +1,35 @@
 #!/usr/bin/env python3
-"""Aggregate run folders into a Markdown table: one row per run, then per arm.
+"""Aggregate run folders into Markdown tables: one row per run, then per condition,
+then the bars.
 
   report.py <run folder>... [--title <text>]
 
-Each folder holds run.json (run.py), and optionally grade.json (grade.py) and
-format.json (format_check.py). The bar: every with-arm run has a sound setup,
-scores at least 7/8 and catches the planted claim; an ungraded run counts as
-not passing.
+Each folder holds run.json (run.py), and optionally grade.json (grade.py),
+format.json (format_check.py) and fixed.json (seed.py --check). A run's
+condition is its folder name without the trailing "-<n>" (garden-with-2
+belongs to garden-with; walk-note-3 to walk-note).
+
+Tokens: "tokens" is input + output + cache-creation tokens (cache reads are
+shown but not summed: they dominate and are cheap). Watch hits are split: a
+hit whose tool call names team/experience/ came through a note, any other is
+a leak (git history, changelog).
+
+Bars:
+- onboarding, per graded with-arm condition: every run has a sound
+  setup, scores at least 7/8 and catches the planted claim; an ungraded run
+  counts as not passing.
+- experience note, per bug with both <bug>-cold and <bug>-note runs:
+  every with-note run is fixed, and the with-note medians of tool calls and of
+  tokens are each at least 30% below the cold medians.
 """
 import argparse
 import json
 import os
+import re
 import sys
-from statistics import mean
+from statistics import median
+
+NOTES = "team/experience/"
 
 
 def load(d, name):
@@ -26,67 +43,140 @@ def fmt(x, digits=0):
     return f"{x:,.{digits}f}" if isinstance(x, (int, float)) and not isinstance(x, bool) else str(x)
 
 
+def note_reads(d):
+    """(index read, note read): tool calls other than writes that name the
+    experience index, or a note in team/experience/."""
+    index = note = False
+    p = os.path.join(d, "stream.jsonl")
+    for line in open(p) if os.path.isfile(p) else []:
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        if e.get("type") != "assistant":
+            continue
+        for b in e["message"].get("content", []):
+            if b.get("type") != "tool_use" or b["name"] in ("Write", "Edit", "MultiEdit"):
+                continue
+            text = json.dumps(b.get("input"))
+            for m in re.finditer(re.escape(NOTES) + r"([\w.\-]*)", text):
+                if m.group(1) == "INDEX.md":
+                    index = True
+                elif m.group(1).endswith(".md"):
+                    note = True
+    return index, note
+
+
+def row(d):
+    run, grade = load(d, "run.json"), load(d, "grade.json")
+    form, fixed = load(d, "format.json"), load(d, "fixed.json")
+    m = run.get("metrics", {})
+    name = os.path.basename(os.path.normpath(d))
+    hits = m.get("watch_hits") or []
+    via_note = sum(1 for h in hits if NOTES in h.get("input", ""))
+    toks = [m.get(k) for k in ("input_tokens", "output_tokens", "cache_creation_input_tokens")]
+    index_read, note_read = note_reads(d)
+    return {
+        "run": name, "condition": re.sub(r"-\d+$", "", name), "arm": run.get("arm") or "–",
+        "setup_ok": run.get("ok"), "score": grade.get("score"),
+        "caught": grade.get("planted_claim_caught"),
+        "passes": bool(run.get("ok") and grade.get("passes_bar")) if grade else None,
+        "graded": bool(grade.get("ok")),
+        "split": grade.get("split_questions"),
+        "fixed": fixed.get("fixed") if fixed else None,
+        "named": fixed.get("named_status"), "failed_tests": len(fixed.get("failed") or []) if fixed else None,
+        "watch_leak": len(hits) - via_note if run else None, "watch_note": via_note if run else None,
+        "index_read": index_read, "note_read": note_read, "notes_given": bool(run.get("notes")),
+        "denials": m.get("permission_denials"), "outside": len(m.get("outside_paths") or []),
+        "format_ok": form.get("ok"), "turns": m.get("num_turns"),
+        "tools": m.get("tool_calls"), "sub_tools": m.get("tool_calls_subagents"),
+        "in": toks[0], "out": toks[1], "cache_w": toks[2],
+        "cache_r": m.get("cache_read_input_tokens"),
+        "tokens": sum(toks) if all(t is not None for t in toks) else None,
+        "secs": (m.get("duration_ms") or 0) / 1000 or None,
+    }
+
+
+def med(rs, k):
+    xs = [r[k] for r in rs if r[k] is not None]
+    return median(xs) if xs else None
+
+
+def cut(cold, note):
+    """Percent the with-note median is below the cold median."""
+    return None if not cold or note is None else 100 * (cold - note) / cold
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("runs", nargs="+", metavar="RUN", help="run folder holding run.json")
     ap.add_argument("--title", default="Results")
     a = ap.parse_args()
-    args, title = a.runs, a.title
-    missing = [d for d in args if not os.path.isfile(os.path.join(d, "run.json"))]
+    missing = [d for d in a.runs if not os.path.isfile(os.path.join(d, "run.json"))]
     if missing:
         sys.exit(f"report: no run.json in: {', '.join(missing)}")
-    rows = []
-    for d in args:
-        run, grade, form = load(d, "run.json"), load(d, "grade.json"), load(d, "format.json")
-        m = run.get("metrics", {})
-        rows.append({
-            "run": os.path.basename(os.path.normpath(d)), "arm": run.get("arm") or "–",
-            "setup_ok": run.get("ok"), "score": grade.get("score"),
-            "caught": grade.get("planted_claim_caught"),
-            "passes": bool(run.get("ok") and grade.get("passes_bar")),
-            "graded": bool(grade.get("ok")), "denials": m.get("permission_denials"),
-            "outside": len(m.get("outside_paths") or []),
-            "format_ok": form.get("ok"), "turns": m.get("num_turns"),
-            "tools": m.get("tool_calls"), "sub_tools": m.get("tool_calls_subagents"),
-            "in": m.get("input_tokens"), "out": m.get("output_tokens"),
-            "cache_w": m.get("cache_creation_input_tokens"),
-            "cache_r": m.get("cache_read_input_tokens"),
-            "secs": (m.get("duration_ms") or 0) / 1000 or None,
-        })
-
+    rows = [row(d) for d in a.runs]
     yn = {True: "yes", False: "no", None: "–"}
-    print(f"# {title}\n")
-    print("| run | arm | setup ok | score /8 | claim caught | passes bar | format ok | turns "
-          "| tool calls (subagent) | denied | outside paths | input | output | cache write "
-          "| cache read | seconds |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    bug_runs = any(r["fixed"] is not None for r in rows)
+
+    print(f"# {a.title}\n")
+    print("| run | arm | setup ok | score /8 | claim caught | passes bar | format ok "
+          + ("| fixed | named test | failing tests | index read | note read | watch hits: leak / note "
+             if bug_runs else "")
+          + "| turns | tool calls (subagent) | denied | outside paths | input | output | cache write "
+            "| cache read | tokens | seconds |")
+    print("|---" * (17 + (6 if bug_runs else 0)) + "|")
     for r in rows:
         print(f"| {r['run']} | {r['arm']} | {yn[r['setup_ok']]} | {fmt(r['score'])} "
-              f"| {yn[r['caught']]} | {yn[r['passes']]} | {yn[r['format_ok']]} | {fmt(r['turns'])} "
-              f"| {fmt(r['tools'])} ({fmt(r['sub_tools'])}) | {fmt(r['denials'])} | {fmt(r['outside'])} "
-              f"| {fmt(r['in'])} | {fmt(r['out'])} "
-              f"| {fmt(r['cache_w'])} | {fmt(r['cache_r'])} | {fmt(r['secs'], 1)} |")
+              f"| {yn[r['caught']]} | {yn[r['passes']]} | {yn[r['format_ok']]} "
+              + (f"| {yn[r['fixed']]} | {fmt(r['named'])} | {fmt(r['failed_tests'])} "
+                 f"| {yn[r['index_read']]} | {yn[r['note_read']]} "
+                 f"| {fmt(r['watch_leak'])} / {fmt(r['watch_note'])} " if bug_runs else "")
+              + f"| {fmt(r['turns'])} | {fmt(r['tools'])} ({fmt(r['sub_tools'])}) | {fmt(r['denials'])} "
+              f"| {fmt(r['outside'])} | {fmt(r['in'])} | {fmt(r['out'])} | {fmt(r['cache_w'])} "
+              f"| {fmt(r['cache_r'])} | {fmt(r['tokens'])} | {fmt(r['secs'], 1)} |")
 
-    print("\n| arm | runs | graded | mean score | claim caught | passes bar | mean turns "
-          "| mean tool calls | mean output tokens | mean seconds |")
-    print("|---|---|---|---|---|---|---|---|---|---|")
-    for arm in ("with", "without"):
-        rs = [r for r in rows if r["arm"] == arm]
-        if not rs:
+    groups = {}
+    for r in rows:
+        groups.setdefault(r["condition"], []).append(r)
+    print("\n| condition | runs | graded | median score | claim caught | passes bar | fixed "
+          "| median turns | median tool calls | median tokens | median seconds |")
+    print("|---" * 11 + "|")
+    for c, rs in groups.items():
+        n = len(rs)
+        fixed = f"{sum(1 for r in rs if r['fixed'])}/{n}" if any(r["fixed"] is not None for r in rs) else "–"
+        graded = sum(1 for r in rs if r["graded"])
+        print(f"| {c} | {n} | {graded} | {fmt(med(rs, 'score'), 1)} "
+              f"| {sum(1 for r in rs if r['caught'])}/{n if graded else '–'} "
+              f"| {sum(1 for r in rs if r['passes'])}/{n if graded else '–'} | {fixed} "
+              f"| {fmt(med(rs, 'turns'), 1)} | {fmt(med(rs, 'tools'), 1)} | {fmt(med(rs, 'tokens'))} "
+              f"| {fmt(med(rs, 'secs'), 1)} |")
+
+    lines = []
+    for c, rs in groups.items():
+        if all(r["arm"] == "with" for r in rs) and any(r["graded"] for r in rs) \
+                and not any(r["fixed"] is not None for r in rs):
+            ok = all(r["passes"] for r in rs)
+            lines.append(f"- **Onboarding bar, {c}:** {'passed' if ok else 'failed'} "
+                         f"({sum(1 for r in rs if r['passes'])}/{len(rs)} runs at least 7/8 with the claim caught).")
+    for c in groups:
+        if not c.endswith("-cold") or c[:-5] + "-note" not in groups:
             continue
-        avg = lambda k: mean(r[k] for r in rs if r[k] is not None) if any(
-            r[k] is not None for r in rs) else None
-        print(f"| {arm} | {len(rs)} | {sum(1 for r in rs if r['graded'])} | {fmt(avg('score'), 1)} "
-              f"| {sum(1 for r in rs if r['caught'])}/{len(rs)} "
-              f"| {sum(1 for r in rs if r['passes'])}/{len(rs)} | {fmt(avg('turns'), 1)} "
-              f"| {fmt(avg('tools'), 1)} | {fmt(avg('out'))} | {fmt(avg('secs'), 1)} |")
-
-    with_runs = [r for r in rows if r["arm"] == "with"]
-    if with_runs:
-        met = all(r["passes"] for r in with_runs)
-        print(f"\nBar (every with-arm run at least 7/8 and the claim caught): "
-              f"{'met' if met else 'not met'} ({sum(1 for r in with_runs if r['passes'])}"
-              f"/{len(with_runs)} with-arm runs pass).")
+        bug, cold, note = c[:-5], groups[c], groups[c[:-5] + "-note"]
+        all_fixed = all(r["fixed"] for r in note)
+        t_cut = cut(med(cold, "tools"), med(note, "tools"))
+        k_cut = cut(med(cold, "tokens"), med(note, "tokens"))
+        s_cut = cut(med(cold, "secs"), med(note, "secs"))
+        ok = all_fixed and t_cut is not None and k_cut is not None and t_cut >= 30 and k_cut >= 30
+        lines.append(f"- **Speed bar, {bug}:** {'passed' if ok else 'failed'}. With-note runs fixed: "
+                     f"{sum(1 for r in note if r['fixed'])}/{len(note)} (cold: "
+                     f"{sum(1 for r in cold if r['fixed'])}/{len(cold)}). Median tool calls "
+                     f"{fmt(med(cold, 'tools'), 1)} → {fmt(med(note, 'tools'), 1)} ({fmt(t_cut, 0)}% lower); "
+                     f"median tokens {fmt(med(cold, 'tokens'))} → {fmt(med(note, 'tokens'))} "
+                     f"({fmt(k_cut, 0)}% lower); median seconds {fmt(med(cold, 'secs'), 1)} → "
+                     f"{fmt(med(note, 'secs'), 1)} ({fmt(s_cut, 0)}% lower).")
+    if lines:
+        print("\n" + "\n".join(lines))
 
 
 if __name__ == "__main__":
