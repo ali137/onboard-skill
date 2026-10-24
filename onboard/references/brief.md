@@ -49,6 +49,9 @@ team/questions/ and team/research/, and sign in to team/SESSIONS.md after go.
 Run onboard first, then wait for go.
 ```
 
+When the lead says the newcomer may start without waiting, the last line is
+"Run onboard first. You have go: brief, then start." instead.
+
 When other live sessions work on the project, add one line after the prompt,
 addressed to the lead: "Start this session as `claude --name <project>-<role>`
-(a session cannot rename itself)." 
+(a session cannot rename itself)."

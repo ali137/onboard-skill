@@ -34,18 +34,18 @@ def test_section_named_only_in_a_bullet_is_missing():
 
 def test_empty_out_of_order_and_too_long():
     assert fc.check_briefing(briefing(bodies={"Drift found": ""}))["empty_sections"] == ["Drift found"]
-    swapped = list(range(10))
-    swapped[0], swapped[9] = 9, 0
+    swapped = list(range(len(TITLES)))
+    swapped[0], swapped[-1] = swapped[-1], 0
     assert fc.check_briefing(briefing(order=swapped))["out_of_order"]
     long = briefing("### {n}. {t}\n{body}", extra="\n".join(f"paragraph {i}" for i in range(40)))
     r = fc.check_briefing(long)
-    assert r["briefing_lines"] > 40 and not r["ok"]
+    assert r["briefing_lines"] > fc.MAX_BRIEFING_LINES and not r["ok"]
 
 
 def test_plan_after_the_briefing_is_not_counted():
     text = briefing(extra="\n**First reply**\n" + "\n".join(f"- plan {i}" for i in range(30)))
     r = fc.check_briefing(text)
-    assert r["ok"] and r["briefing_lines"] == 10
+    assert r["ok"] and r["briefing_lines"] == 12
 
 
 def test_required_clauses():
@@ -66,3 +66,20 @@ def test_note_and_role_card():
     card = "# x\n" + "".join(f"## {f}\nfilled\n" for f in fc.ROLE_CARD)
     assert fc.check_role_card(card)["ok"]
     assert fc.check_role_card(card.replace("## Goal\nfilled", "## Goal\n<goal>"))["empty_fields"] == ["Goal"]
+
+
+def test_the_phase_13_briefing():
+    """The 12 sections of the briefing (settled decisions; every claim checked), in
+    the skill's own example form; the old 10-section form now misses those two; a go given
+    in the starting prompt ends the briefing instead of "Waiting for go."."""
+    text = open(os.path.join(os.path.dirname(fc.__file__), "..", "onboard/references/join.md")).read()
+    example = text.split("```\n## Briefing")[1].split("```")[0]
+    assert fc.check_briefing("## Briefing" + example)["ok"]
+    old = "\n".join(l for l in example.splitlines()
+                    if not l.startswith(("4. **Settled", "5. **Claims")))
+    r = fc.check_briefing("## Briefing" + old)
+    assert r["missing_sections"] == ["Settled decisions", "Claims checked"] and not r["ok"]
+    started = briefing().replace("Waiting for go.", "Go given in the starting prompt; starting.")
+    r = fc.check_briefing(started + "\nNow fixing bakery/inventory.py.\n")
+    assert r["ok"] and r["waiting_for_go"]
+    assert not fc.check_briefing(briefing().replace("Waiting for go.", ""))["ok"]

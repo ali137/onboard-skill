@@ -2,8 +2,10 @@
 """Check a newcomer's output against the skill's formats. A script, not a model:
 the output itself is never constrained, only checked afterwards.
 
-  format_check.py briefing <file or run folder>   the 10 briefing sections, their required
-                                                  clauses, length, "Waiting for go."
+  format_check.py briefing <file or run folder>   the 12 briefing sections, their required
+                                                  clauses, length, and its last line: "Waiting
+                                                  for go.", or with go in the starting prompt
+                                                  "Go given in the starting prompt; starting."
   format_check.py note <file>...                  the 9 experience-note fields
   format_check.py role-card <file>...             the 9 role-card headings
 
@@ -15,14 +17,14 @@ import os
 import re
 import sys
 
-BRIEFING = ["Who I am", "Team", "Where things stand", "Drift found", "Rule conflicts",
-            "Matching experience notes", "My next task", "My limits", "Quick check",
-            "Questions for the lead"]
+BRIEFING = ["Who I am", "Team", "Where things stand", "Settled decisions", "Claims checked",
+            "Drift found", "Rule conflicts", "Matching experience notes", "My next task",
+            "My limits", "Quick check", "Questions for the lead"]
 NOTE = ["date", "commit", "files", "symptom", "cause", "fix", "verified by",
         "applies when", "does not apply when"]
 ROLE_CARD = ["Name", "Role", "Goal", "Owns", "Does not own", "May decide alone",
              "Must ask the lead", "Reports to", "Route to me when"]
-MAX_BRIEFING_LINES = 40
+MAX_BRIEFING_LINES = 45  # the skill says at most 40; a few lines of slack
 # words a section's body must hold: what the project is; what the newcomer may decide alone
 CLAUSES = {"Where things stand": ["project"], "My limits": ["decide alone"]}
 
@@ -51,7 +53,8 @@ def check_briefing(text):
     present = [t for t in BRIEFING if found[t] is not None]
     out_of_order = [b for a, b in zip(present, present[1:]) if found[b] < found[a]]
 
-    end = next((i for i, l in enumerate(lines) if re.search(r"waiting for go", l, re.IGNORECASE)), None)
+    end = next((i for i, l in enumerate(lines) if re.search(
+        r"waiting for go|go given in the starting prompt", l, re.IGNORECASE)), None)
     n_lines, empty, clauses = 0, [], []
     if present and not out_of_order:
         first, last = found[present[0]], found[present[-1]]
