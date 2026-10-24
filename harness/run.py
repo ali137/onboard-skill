@@ -533,14 +533,17 @@ def main():
         # an interactive session auto-updates the installed claude (2.1.308 -> 2.1.310 in
         # phase 10's smoke session), which changes it for every later run
         env["DISABLE_AUTOUPDATER"] = "1"
+    setup = {
+        "src": src, "model": a.model, "git": git_mode, "harness": harness_version(),
+        "skill": harness_version(os.path.realpath(a.skill)) if a.arm == "with" else None,
+        "env_keys": sorted(k for k in env if "TOKEN" not in k),
+        "paths_rewritten_files": rewritten, "planted": planted,
+        "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
+        "allow": allow, "teams": a.teams,
+    }
+    if a.setup_only:
         launch = launch_script(out, work, a.token_file, env, ["claude", "--model", a.model] + isolated)
-        json.dump({"arm": a.arm, "setup_only": True, "src": src, "model": a.model, "git": git_mode,
-                   "harness": harness_version(),
-                   "skill": harness_version(os.path.realpath(a.skill)) if a.arm == "with" else None,
-                   "env_keys": sorted(k for k in env if "TOKEN" not in k),
-                   "paths_rewritten_files": rewritten, "planted": planted, "prepare": a.prepare,
-                   "prepared": prepared, "note_from": a.note_from, "notes": notes, "allow": allow,
-                   "teams": a.teams}, open(f"{out}/run.json", "w"), indent=2)
+        json.dump({"arm": a.arm, "setup_only": True, **setup}, open(f"{out}/run.json", "w"), indent=2)
         print(json.dumps({"arm": a.arm, "setup_only": True, "launch": launch}))
         return
     cmd = ["claude", "-p", "--model", a.model, "--output-format", "stream-json",
@@ -597,13 +600,8 @@ def main():
         or checks["undeclared_hooks"] or checks["billed_by_api_key"] or timed_out
         or checks["is_error"])
     record = {
-        "arm": a.arm, "ok": ok, "src": src, "model": a.model, "git": git_mode,
-        "harness": harness_version(),
-        "skill": harness_version(os.path.realpath(a.skill)) if a.arm == "with" else None,
-        "env_keys": sorted(k for k in env if "TOKEN" not in k),
-        "paths_rewritten_files": rewritten, "planted": planted,
-        "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
-        "allow": allow, "watch": a.watch, "max_turns": a.max_turns, "wall_s": wall,
+        "arm": a.arm, "ok": ok, **setup,
+        "watch": a.watch, "max_turns": a.max_turns, "wall_s": wall,
         "metrics": metrics(calls, result, work, tool_results(events), a.watch), "checks": checks,
     }
     json.dump(record, open(f"{out}/run.json", "w"), indent=2)
