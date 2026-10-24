@@ -294,10 +294,30 @@ GIT_HISTORY = re.compile(r"(?:^|\s)git(?:\s+-[Cc]\s+\S+|\s+--?[\w.-]+(?:=\S+)?)*
                          r"\s+(log|show|blame|reflog|rev-list|whatchanged|cat-file|fsck)\b")
 
 
+GIT_DIFF = re.compile(r"(?:^|\s)git(?:\s+-[Cc]\s+\S+|\s+--?[\w.-]+(?:=\S+)?)*\s+diff\b(.*)")
+# a revision argument: a hash, or a ref with ~ ^ .. or @{ (HEAD~1, a..b, main@{1});
+# a bare branch name or HEAD alone is not counted (HEAD is the copy's own state)
+REVISION = re.compile(r"[0-9a-f]{7,40}|\S*(?:~|\^|\.\.|@\{)\S*")
+
+
+def diffs_history(part):
+    """`git diff` naming a revision before any `--`: it shows a commit's content."""
+    m = GIT_DIFF.search(part)
+    if not m:
+        return False
+    for arg in m.group(1).split():
+        if arg == "--":
+            return False
+        if not arg.startswith("-") and REVISION.fullmatch(arg.strip("'\"")):
+            return True
+    return False
+
+
 def reads_history(name, inp):
     """A Bash command with a part (split on ; && || | and newlines) that reads git history."""
     cmd = (inp or {}).get("command", "") if name == "Bash" else ""
-    return any(GIT_HISTORY.search(part) for part in re.split(r";|&&|\|\||\||\n", cmd))
+    return any(GIT_HISTORY.search(part) or diffs_history(part)
+               for part in re.split(r";|&&|\|\||\||\n", cmd))
 
 
 def git_history_calls(calls):

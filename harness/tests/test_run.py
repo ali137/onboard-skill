@@ -455,3 +455,25 @@ def test_setup_only_needs_a_token_file_and_teams_stay_off_by_default(tmp_path):
     r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap),
             "--out", str(tmp_path / "runs/w-2"), "--prompt", "hi", "--skill", str(skill))
     assert "env" not in json.load(open(tmp_path / "runs/w-2/run-settings.json"))
+
+
+def harness_module(name):
+    sys.path.insert(0, HARNESS)
+    try:
+        return __import__(name)
+    finally:
+        sys.path.remove(HARNESS)
+
+
+def test_git_diff_of_a_revision_is_a_history_read():
+    """`git diff <rev>` shows a commit's content, so it counts like `git show`; a diff of
+    the working copy (no revision, HEAD alone, or paths after --) does not."""
+    rh = harness_module("run").reads_history
+    for cmd in ["git diff ca33bc7~1 ca33bc7 -- gaugemoor/clean.py", "git diff --stat 4d1b322",
+                "git -C work diff HEAD~2", "cd x && git diff main..fix | head",
+                "git diff 'HEAD^' app.py", "git diff main@{1}"]:
+        assert rh("Bash", {"command": cmd}), cmd
+    for cmd in ["git diff", "git diff --stat", "git diff HEAD", "git diff -- tests/test_x.py",
+                "git diff --cached app.py", "git status && git diff app.py", "git diff -- a~b"]:
+        assert not rh("Bash", {"command": cmd}), cmd
+    assert not rh("Read", {"command": "git diff abc1234"})
