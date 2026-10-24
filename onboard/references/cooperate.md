@@ -20,11 +20,11 @@ EOF
 
 The quoted `'EOF'` keeps the entry's text exactly as written; `sed` puts in
 the real local time. Never type a time yourself. Create a missing folder with
-`mkdir -p team/questions team/research` first. A file that does not exist yet
-gets its template's header lines first, in a write that fails if another
-session created the file a moment earlier (then the header is already there:
-just append): `( set -C; cat > <file> ) 2>/dev/null <<'EOF'` <header lines>
-`EOF`. Never edit, rewrite or delete an entry in these files, not even your
+`mkdir -p team/questions team/research` first. Only `team/SESSIONS.md` has
+header lines (its template's first four lines). If it does not exist yet, write
+them first, in a write that fails if another session created the file a moment
+earlier (then the header is already there: just append):
+`( set -C; cat > team/SESSIONS.md ) 2>/dev/null <<'EOF'` <header lines> `EOF`. Never edit, rewrite or delete an entry in these files, not even your
 own: an answer or a status change is a new entry. Write nothing else under
 these rules.
 
@@ -35,8 +35,8 @@ other), send to the socket path in its sign-in entry instead. To reply, use the
 
 ## 1. Who is live (checked during join; join itself writes nothing)
 
-Read `team/SESSIONS.md`. A session counts as **working** when its latest entry
-says "working" and no later notice names it unreachable. A working session is
+Read `team/SESSIONS.md`. A session counts as **working** when its latest
+sign-in or status entry says "working" and no later notice names it unreachable. A working session is
 **live** when `ListAgents` lists it, or, for a session in another config
 folder, a message to its socket path is delivered.
 
@@ -95,7 +95,8 @@ section 2. After signing in, post a notice and tell that owning session:
 ## 6. Asking
 
 1. Append the question to `team/questions/<domain>.md`, addressed to the
-   owning session. IDs are `Q-<your name>-<n>`, counting your own questions.
+   owning session. IDs are `Q-<your name>-<n>`, counting your own questions
+   (below, `Q-<id>` is that whole ID: `<id>` is `<your name>-<n>`).
    The question must stand alone: what you need, why, and what you will do
    meanwhile.
 2. Ping the owning session, one line, one ping per question:
@@ -122,6 +123,8 @@ Sort by the kind of question:
   in one line with its ID. It stays open. **Keep building:** do every part of
   your task the answer does not change, and wait (rule 10) only when nothing
   else is left. Never stop work to wait for the lead while other work remains.
+  Rule 10's reminder and readdressing do not apply to a question to the lead:
+  it stays open until the lead answers, and rule 12 still follows.
 
 ## 8. Acknowledge every ping at once
 
@@ -148,15 +151,21 @@ summary, index or copy of answers is kept beside them. You stay accountable.
 ## 10. Waiting, and no acknowledgment
 
 When you have nothing else to do until an answer comes, wait in steps of one
-minute, at most 10 steps (about 10 minutes):
+minute, at most 10 steps (about 10 minutes). For an answer:
 
 ```
-timeout 60 bash -c 'until grep -q "<pattern>" <file>; do sleep 10; done'
+timeout 60 bash -c 'until grep -q "^## A to Q-<id> " <file>; do sleep 10; done'
 ```
 
-For an answer, the pattern is `^## A to Q-<id> ` in its questions file; when
-you wait for a message instead (an acknowledgment, a sign-off reply), use your
-own domain's questions file and `^## Q-.* · to <your name>`. A message is read
+When you wait for a message instead (an acknowledgment, a sign-off reply), the
+step ends early only if a new question to you is filed meanwhile (it counts the
+ones already there first):
+
+```
+n=$(cat team/questions/*.md | grep -c ' · to <your name>'); timeout 60 bash -c "until [ \$(cat team/questions/*.md | grep -c ' · to <your name>') -gt $n ]; do sleep 10; done"
+```
+
+A message is read
 only between tool calls, so a long wait would hide it: after each step, read and
 handle any message that came (acknowledge a ping at once, rule 8) before the
 next step. Stop as soon as what you wait for has come, as a file entry or as a
@@ -182,7 +191,8 @@ entry of each kind wins.
 ## 12. Sign off
 
 A checklist, in order, before you end your last turn or call your work done.
-Do not append status `done`, and do not end, until every box is ticked:
+Do not append status `done`, and do not end, until the first three boxes are
+ticked; the fourth is the `done` entry itself:
 - [ ] every open question addressed to you is answered, or handed to the lead
       the way rule 10 readdresses one;
 - [ ] "Closing; any question for me?" is sent to each live session, one message
@@ -191,9 +201,9 @@ Do not append status `done`, and do not end, until every box is ticked:
       notice (wait the rule 10 way);
 - [ ] status `done` is appended to `team/SESSIONS.md`. Entries stay.
 
-Waiting on the lead does not excuse the sign-off: a question to the lead that is
-still open is handed over in the first box (it stays open in the file), and the
-other boxes follow.
+Waiting on the lead does not excuse the sign-off. Your own open question to the
+lead stays open in the file and does not block it: tell the lead its ID, then
+tick the boxes.
 
 A task handed over at an overlap (rule 5) is a question too: once the owner
 answers it, it is closed.

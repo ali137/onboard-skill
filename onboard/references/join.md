@@ -51,12 +51,13 @@ folder and its git: a claim about a path outside it is listed as "not checked",
 never probed.
 
 First list the **checkable claims** in what you read: the rules files, the
-latest decision block, `PHASES.md` and the active phase's prompt, and the
-matching notes. A checkable claim is any statement disk or git can confirm or
+latest decision block, `PHASES.md`'s rows for the active phase and the last one
+marked done, the active phase's prompt, and the matching notes. A checkable claim is any statement disk or git can confirm or
 refute: a path that exists (or does not yet), a command and what it calls, a
 phase's status, a commit, a count, a "done" or "gone". Check every one on that
 list, skipping none for looking minor; briefing section 5 reports each with its
-result. At minimum the list holds:
+result (claims of one kind may share an item, such as "the 9 paths in
+`AGENTS.md` Layout: ok"). At minimum the list holds:
 
 - the active phase's prompt exists at the path `PHASES.md` gives, and
   exactly one phase is active (if the file says that is the rule);
@@ -141,7 +142,8 @@ by content: what each one decides, in a few words, with its file and ID. Give
 at least three when the files record that many; one the files mark overturned
 or replaced is not in force. None recorded: "none recorded".
 Section 5 lists every claim step 3 checked, one short item each: the claim, its
-file, and "ok" or "drift" (the details of a drift go in section 6).
+file, and "ok" or "drift" (the details of a drift go in section 6); group claims
+of one kind to stay inside the line limit.
 Section 10's "may decide alone" comes from the rules, your role card or the
 session prompt. Most projects have no decide-alone list: then name what their
 rules leave to you, how to do the work inside the conventions they set (the

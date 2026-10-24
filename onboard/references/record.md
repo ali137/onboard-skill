@@ -1,8 +1,9 @@
 # Record mode, and the hand-down rule
 
 Record mode writes one **experience note** so a later session, teammate, or
-subagent fixes the same problem faster. It is the only mode that writes, and
-it writes only `team/experience/`.
+subagent fixes the same problem faster. It is the only mode that writes files
+itself, and only inside `team/experience/`; when other live sessions work on
+the project, the cooperation rules may also append to `team/` (SKILL.md rule 1).
 
 ## 1. Precondition: refuse unless both hold
 
