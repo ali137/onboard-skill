@@ -433,6 +433,7 @@ def test_setup_only_writes_an_interactive_launch_with_the_same_isolation(tmp_pat
     assert os.path.isdir(out / "work/.claude/skills/onboard")
     launch = open(out / "launch.sh").read()
     assert "tok-123" not in launch  # read from the token file at launch, not stored
+    assert "DISABLE_AUTOUPDATER=1" in launch  # a lab session must not update the installed claude
     # the launch carries the isolation: run it from a "terminal" with a leaky environment
     env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}", ANTHROPIC_API_KEY="k",
                CLAUDE_EFFORT="max")

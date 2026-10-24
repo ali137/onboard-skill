@@ -530,6 +530,9 @@ def main():
     isolated = ["--settings", f"{out}/run-settings.json",
                 "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
     if a.setup_only:
+        # an interactive session auto-updates the installed claude (2.1.308 -> 2.1.310 in
+        # phase 10's smoke session), which changes it for every later run
+        env["DISABLE_AUTOUPDATER"] = "1"
         launch = launch_script(out, work, a.token_file, env, ["claude", "--model", a.model] + isolated)
         json.dump({"arm": a.arm, "setup_only": True, "src": src, "model": a.model, "git": git_mode,
                    "harness": harness_version(),
