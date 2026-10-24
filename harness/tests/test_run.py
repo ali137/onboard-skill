@@ -530,3 +530,26 @@ def test_note_from_points_a_cited_fold_commit_at_this_copys_head(tmp_path):
     q = lambda *x: subprocess.run(["git", "-C", str(out / "work"), *x], capture_output=True, text=True)
     assert q("cat-file", "-e", new[:7]).returncode == 0
     assert q("status", "--porcelain").stdout == ""
+
+
+def test_run_settings_hold_no_deny_rule_that_never_matches(tmp_path):
+    """Claude Code warns that Write(...), NotebookEdit(...) and Glob(...) deny rules never
+    match (use Edit / Read). The run's settings drop a Write or NotebookEdit rule whose
+    Edit twin is there, keep one without a twin, and --deny-read adds no Glob rule."""
+    bin_dir, snap, skill, _ = setup(tmp_path)
+    base = tmp_path / "base.json"
+    write(str(base), json.dumps({"permissions": {"deny": [
+        "Edit(//k/**)", "Write(//k/**)", "NotebookEdit(//k/**)", "Write(~/solo/**)",
+        "Bash(rm *k*)"]}}))
+    keys = tmp_path / "keys"
+    keys.mkdir()
+    out = tmp_path / "runs/d-1"
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), "--base-settings", str(base),
+            "--deny-read", str(keys))
+    assert r.returncode == 0, r.stdout + r.stderr
+    deny = json.load(open(out / "run-settings.json"))["permissions"]["deny"]
+    k = os.path.realpath(keys)
+    assert deny == ["Edit(//k/**)", "Write(~/solo/**)", "Bash(rm *k*)", f"Read(/{k}/**)",
+                    f"Grep(/{k}/**)", f"Bash(*{k}*)", "Bash(*../*)"]
+    assert json.load(open(base))["permissions"]["deny"][1] == "Write(//k/**)"  # base unchanged

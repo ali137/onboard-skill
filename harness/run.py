@@ -27,8 +27,10 @@ Builds <out>/work, a writable copy of --src:
 The run gets a fresh CLAUDE_CONFIG_DIR (<out>/cfg) and only an allowlist of
 the caller's environment. HOME stays real; paths a run names under it are
 recorded. <out>/run-settings.json is
---base-settings (deny rules, guard hooks), denials for each --deny-read folder
-(Read, Grep, Glob, and Bash commands naming it, plus any Bash "../"), and
+--base-settings (deny rules, guard hooks; a Write(...) or NotebookEdit(...) deny
+rule with an Edit(...) twin is dropped, since it never matches), denials for each
+--deny-read folder (Read, which covers Glob, Grep, and Bash commands naming it,
+plus any Bash "../"), and
 claudeMdExcludes for every ancestor memory file, so only the copy's own
 CLAUDE.md loads, plus each --allow rule (e.g. "Bash(git log:*)") in
 permissions.allow: without one, a headless run is denied every tool that asks. A run's own parent folders cannot be denied (the copy lives
@@ -254,6 +256,14 @@ def rewrite_fold_hash(src_copy, work, notes):
             open(p, "w", encoding="utf-8").write(fixed)
             files.append(rel)
     return {"old": old[0], "new": new[0], "files": files}
+
+
+def live_rules(deny):
+    """Deny rules without the ones Claude Code says never match: a Write(...) or
+    NotebookEdit(...) rule ("use Edit(...)") whose Edit(...) twin is in the list, so
+    what is denied stays the same and the launch shows no warnings."""
+    return [r for r in deny if not (r.startswith(("Write(", "NotebookEdit("))
+                                    and "Edit(" + r.split("(", 1)[1] in deny)]
 
 
 def declared_hooks(*settings_files):
@@ -562,9 +572,10 @@ def main():
     settings = json.load(open(a.base_settings)) if a.base_settings else {}
     settings["claudeMdExcludes"] = ancestor_excludes(work)
     deny = settings.setdefault("permissions", {}).setdefault("deny", [])
+    deny[:] = live_rules(deny)
     for d in a.deny_read:
         d = os.path.realpath(d)
-        deny += [f"Read(/{d}/**)", f"Grep(/{d}/**)", f"Glob(/{d}/**)", f"Bash(*{d}*)"]
+        deny += [f"Read(/{d}/**)", f"Grep(/{d}/**)", f"Bash(*{d}*)"]  # Read covers Glob
     if a.deny_read:  # relative escapes from the copy, e.g. cat ../../keys/x
         deny.append("Bash(*../*)")
     allow = [r for x in a.allow for r in (
