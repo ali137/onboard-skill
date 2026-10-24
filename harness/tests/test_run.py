@@ -489,3 +489,44 @@ def test_outside_paths_include_temp_folders(tmp_path):
              "c": ("Read", None, {"file_path": f"{work}/app.py"}),
              "d": ("Bash", None, {"command": "cat /tmpfile"})}
     assert op(calls, work) == ["/tmp/dbg_mf02.py", "/var/tmp/s.py"]
+
+
+def test_note_from_points_a_cited_fold_commit_at_this_copys_head(tmp_path):
+    """Folding the new INDEX.md lines changes HEAD's hash; a note that cites the earlier
+    copy's HEAD (its fold commit) by hash, short or full, then cites this copy's HEAD,
+    so the hash resolves here. Other hashes stay as written."""
+    bin_dir, _, skill, _ = setup(tmp_path)
+    src = tmp_path / "ground"
+    index = "# Experience notes\n"
+    write(str(src / "app.py"), "x = 1\n")
+    write(str(src / "team/experience/INDEX.md"), index)
+    g = ["git", "-C", str(src), "-c", "user.name=A", "-c", "user.email=a@b"]
+    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
+    subprocess.run(g + ["add", "-A"], check=True)
+    subprocess.run(g + ["commit", "-q", "-m", "first"], check=True)
+    write(str(src / "app.py"), "x = 2\n")
+    subprocess.run(g + ["commit", "-q", "-am", "second"], check=True)
+    cold = tmp_path / "runs/cold-1"
+    r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(src), "--out", str(cold),
+            "--prompt", "hi", "--skill", str(skill), "--keep-git")
+    assert r.returncode == 0, r.stdout + r.stderr
+    h = lambda w, *x: subprocess.run(["git", "-C", str(w), "rev-parse", *x, "HEAD"],
+                                     capture_output=True, text=True).stdout.strip()
+    old, first = h(cold / "work"), h(cold / "work", "--short=9") + "~1"
+    other = subprocess.run(g[:3] + ["rev-parse", "HEAD~1"], capture_output=True, text=True).stdout.strip()
+    write(str(cold / "work/team/experience/INDEX.md"), index + "- 2026-02-02 · n · app.py · team/experience/n.md\n")
+    write(str(cold / "work/team/experience/n.md"),
+          f"Seen at {old[:7]} ({old}); the cause is older: {other[:7]}; see {first}.\n")
+    out = tmp_path / "runs/note-1"
+    r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(src), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), "--keep-git", "--note-from", str(cold / "work"))
+    assert r.returncode == 0, r.stdout + r.stderr
+    new = h(out / "work")
+    assert new != old
+    assert open(out / "work/team/experience/n.md").read() == (
+        f"Seen at {new[:7]} ({new}); the cause is older: {other[:7]}; see {new[:9]}~1.\n")
+    assert json.load(open(out / "run.json"))["note_hash"] == {
+        "old": old, "new": new, "files": ["team/experience/n.md"]}
+    q = lambda *x: subprocess.run(["git", "-C", str(out / "work"), *x], capture_output=True, text=True)
+    assert q("cat-file", "-e", new[:7]).returncode == 0
+    assert q("status", "--porcelain").stdout == ""

@@ -18,7 +18,9 @@ Builds <out>/work, a writable copy of --src:
   - --note-from copies the notes an earlier run copy added to team/experience/
     (files this copy does not have; the ground's own notes stay as they are)
     and appends its new INDEX.md lines, with that copy's path rewritten to this
-    one; added files stay untracked, a tracked INDEX.md is folded into HEAD;
+    one; added files stay untracked, a tracked INDEX.md is folded into HEAD, and
+    the earlier copy's HEAD hash in the added notes becomes this copy's (run.json
+    "note_hash");
   - git: none, like a source without git (git does not look above <out>); with
     --keep-git, the source's history, with the harness's changes (rewrites,
     plants, --prepare, the skill, --note-from) hidden in it (see keep_history).
@@ -221,6 +223,37 @@ def keep_history(work, rewritten, planted, skill_name, arm, notes=()):
     subprocess.run(g + ["reflog", "expire", "--expire=now", "--all"], check=True)
     subprocess.run(g + ["gc", "-q", "--prune=now"], check=True)
     return "kept, harness changes folded into HEAD"
+
+
+def rewrite_fold_hash(src_copy, work, notes):
+    """Folding new INDEX.md lines into HEAD gives this copy a HEAD hash the earlier copy
+    did not have, so a note citing the earlier copy's HEAD (its own fold commit) would
+    name a commit that is missing here. When both HEADs are fold commits of the same
+    commit (same parent and subject), every 7-40 character prefix of the old hash in
+    the copied, untracked notes becomes the same-length prefix of the new one. Returns
+    {"old", "new", "files"}, or None when nothing applies."""
+    def head(path):
+        r = subprocess.run(["git", "-C", path, "log", "-1", "--format=%H%x00%P%x00%s"],
+                           capture_output=True, text=True)
+        return r.stdout.strip().split("\0") if r.returncode == 0 and r.stdout.strip() else None
+    old, new = head(os.path.realpath(src_copy)), head(work)
+    if not (old and new) or old[0] == new[0] or old[1:] != new[1:]:
+        return None
+    untracked = set(subprocess.run(["git", "-C", work, "ls-files", "--others", "--", *notes],
+                                   capture_output=True, text=True, check=True).stdout.split())
+    pattern = re.compile(r"\b" + old[0][:7] + r"[0-9a-f]{0,33}\b")
+    files = []
+    for rel in notes:
+        if rel not in untracked:
+            continue
+        p = os.path.join(work, rel)
+        text = open(p, encoding="utf-8").read()
+        fixed = pattern.sub(lambda m: new[0][:len(m.group())] if old[0].startswith(m.group())
+                            else m.group(), text)
+        if fixed != text:
+            open(p, "w", encoding="utf-8").write(fixed)
+            files.append(rel)
+    return {"old": old[0], "new": new[0], "files": files}
 
 
 def declared_hooks(*settings_files):
@@ -523,6 +556,7 @@ def main():
     notes = copy_notes(a.note_from, work) if a.note_from else []
     git_mode = keep_history(work, rewritten, planted + prepared, skill_name, a.arm,
                             notes) if a.keep_git else "none"
+    note_hash = rewrite_fold_hash(a.note_from, work, notes) if a.keep_git and notes else None
 
     os.makedirs(cfg)
     settings = json.load(open(a.base_settings)) if a.base_settings else {}
@@ -563,6 +597,7 @@ def main():
         "env_keys": sorted(k for k in env if "TOKEN" not in k),
         "paths_rewritten_files": rewritten, "planted": planted,
         "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
+        "note_hash": note_hash,
         "allow": allow, "teams": a.teams,
     }
     if a.setup_only:
