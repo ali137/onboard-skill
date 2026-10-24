@@ -1,18 +1,32 @@
 # Cooperation rules
 
 Follow these while other live sessions work on the same project: in join mode
-from "go" until you sign off; in brief and record mode for that run. A **live
+from "go" until you sign off; in record mode for that run. Brief mode only
+reads `team/SESSIONS.md` for the starting prompt and writes nothing. A **live
 session** is a Claude Code session working on the project now, together with
 its own subagents. Templates for every entry are in `templates/`
 (`SESSIONS.md`, `DOMAINS.md`, `question.md`, `research-entry.md`).
 
-**How to write (every rule below).** Append one whole entry in one call:
-`cat >> <file> <<'EOF'` ... `EOF`. A file that does not exist yet starts with
-its template's header lines, in the same append. Create a missing folder with
-`mkdir -p team/questions team/research` first. Never edit, rewrite or delete
-an entry in these files, not even your own: an answer or a status change is a
-new entry. Write nothing else under these rules. Times are local,
-`date '+%Y-%m-%d %H:%M'`.
+**How to write (every rule below).** Append one whole entry in one call, and
+let `date` write its time: put `@TIME@` where the template has
+`<YYYY-MM-DD HH:MM>` (and for "<time>" in a notice), then
+
+```
+sed "s/@TIME@/$(date '+%Y-%m-%d %H:%M')/g" >> <file> <<'EOF'
+## Q-bakery-pricing-1 · @TIME@ · from bakery-pricing · to bakery-invoices
+...
+EOF
+```
+
+The quoted `'EOF'` keeps the entry's text exactly as written; `sed` puts in
+the real local time. Never type a time yourself. Create a missing folder with
+`mkdir -p team/questions team/research` first. A file that does not exist yet
+gets its template's header lines first, in a write that fails if another
+session created the file a moment earlier (then the header is already there:
+just append): `( set -C; cat > <file> ) 2>/dev/null <<'EOF'` <header lines>
+`EOF`. Never edit, rewrite or delete an entry in these files, not even your
+own: an answer or a status change is a new entry. Write nothing else under
+these rules.
 
 **How to message a session.** `SendMessage` to its name. If `ListAgents` does
 not list that name (sessions with different config folders cannot see each
@@ -38,7 +52,7 @@ those notices are all you write; nothing below applies.
 
 `team/DOMAINS.md` is the domain list. Your own domains come from your starting
 prompt, else your role card's "Domains"; with neither, ask the lead in briefing
-section 10. Every entry you write carries one domain.
+section 12. Every entry you write carries one domain.
 
 No `team/DOMAINS.md`: never write it. After the briefing (before "Waiting for
 go."), print a draft list, one row per domain from the project's folders and
@@ -60,8 +74,8 @@ Search older entries by keyword (`grep -n`) only when your task needs them.
 ## 4. Your name and sign-in (first act after "go")
 
 Your name is what `ListAgents` shows as "This session is <name>". It should be
-`<project>-<role>`. A session cannot rename itself: if yours is a default label
-(such as `ali-e8`), ask the lead in briefing section 10 to type
+`<project>-<role>`. A session cannot rename itself: if yours is a default,
+generated label, ask the lead in briefing section 12 to type
 `/rename <project>-<role>`.
 
 After "go", append a sign-in entry to `team/SESSIONS.md` (template).
@@ -84,8 +98,10 @@ section 2. After signing in, post a notice and tell that owning session:
    owning session. IDs are `Q-<your name>-<n>`, counting your own questions.
    The question must stand alone: what you need, why, and what you will do
    meanwhile.
-2. Ping the owning session, one line:
-   "Q-<id> in team/questions/<domain>.md is for you."
+2. Ping the owning session, one line, one ping per question:
+   "Q-<id> in team/questions/<domain>.md is for you." Two questions are two
+   pings, each its own message; a question named only inside another message
+   has not been pinged.
 3. Carry on with work that does not depend on the answer. A delivered message
    is not a read one: expect the acknowledgment (rule 8).
 
@@ -101,8 +117,11 @@ Sort by the kind of question:
   yourself, `self-answered: <source>`.
 - **A choice inside your role card's "may decide alone":** decide it,
   `decided by <name>, overturnable`.
-- **Anything else:** address it to the lead; it stays open. Carry on with other
-  work.
+- **Anything else:** append it to the domain's questions file addressed to
+  the lead (the lead's questions are filed like any other), and tell the lead
+  in one line with its ID. It stays open. **Keep building:** do every part of
+  your task the answer does not change, and wait (rule 10) only when nothing
+  else is left. Never stop work to wait for the lead while other work remains.
 
 ## 8. Acknowledge every ping at once
 
@@ -123,20 +142,31 @@ already knows) and go back to your work. Give it the question ID, the domain's
 file paths and these rules. It appends the signed answer
 (`by <your name>/responder-<domain>`) and messages the asker. One responder per
 domain you own; responders message each other directly when they need to.
-Never a cache file. You stay accountable.
+Never a cache file: a responder reads the domain's own files each time, and no
+summary, index or copy of answers is kept beside them. You stay accountable.
 
 ## 10. Waiting, and no acknowledgment
 
-When you have nothing else to do until an answer comes, wait on the file, at
-most 10 minutes:
-`timeout 600 bash -c 'until grep -q "^## A to Q-<id> " <file>; do sleep 20; done'`.
-Messages that arrived meanwhile are read when the command ends.
+When you have nothing else to do until an answer comes, wait in steps of one
+minute, at most 10 steps (about 10 minutes):
 
-No acknowledgment and no answer after about 10 minutes: send one reminder.
-Still nothing after another 10: append a notice `<session> unreachable at
-<time>`, and readdress the question to the lead: a new question to the lead,
-plus `## A to Q-<old id>` saying "readdressed as Q-<new id>", so the old one
-is closed.
+```
+timeout 60 bash -c 'until grep -q "<pattern>" <file>; do sleep 10; done'
+```
+
+For an answer, the pattern is `^## A to Q-<id> ` in its questions file; when
+you wait for a message instead (an acknowledgment, a sign-off reply), use your
+own domain's questions file and `^## Q-.* · to <your name>`. A message is read
+only between tool calls, so a long wait would hide it: after each step, read and
+handle any message that came (acknowledge a ping at once, rule 8) before the
+next step. Stop as soon as what you wait for has come, as a file entry or as a
+message.
+
+No acknowledgment and no answer after about 10 minutes: send one reminder, and
+give it one more wait of the same length. Still nothing: append a notice
+`<session> unreachable at <time>`, and readdress the question to the lead: a
+new question to the lead, plus `## A to Q-<old id>` saying "readdressed as
+Q-<new id>", so the old one is closed.
 
 ## 11. Research and status
 
@@ -151,12 +181,19 @@ entry of each kind wins.
 
 ## 12. Sign off
 
-Before you end:
-1. answer every open question addressed to you, or hand it to the lead the way
-   rule 10 readdresses one;
-2. message each live session: "Closing; any question for me?";
-3. wait for each acknowledgment (rule 10's wait and reminder apply);
-4. append status `done`. Entries stay.
+A checklist, in order, before you end your last turn or call your work done.
+Do not append status `done`, and do not end, until every box is ticked:
+- [ ] every open question addressed to you is answered, or handed to the lead
+      the way rule 10 readdresses one;
+- [ ] "Closing; any question for me?" is sent to each live session, one message
+      each;
+- [ ] each one acknowledged, or got rule 10's reminder and its unreachable
+      notice (wait the rule 10 way);
+- [ ] status `done` is appended to `team/SESSIONS.md`. Entries stay.
+
+Waiting on the lead does not excuse the sign-off: a question to the lead that is
+still open is handed over in the first box (it stays open in the file), and the
+other boxes follow.
 
 A task handed over at an overlap (rule 5) is a question too: once the owner
 answers it, it is closed.
