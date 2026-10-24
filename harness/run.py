@@ -5,6 +5,7 @@
          [--skill <skill folder>] [--plant <plant.json>] [--prepare <command>] [--keep-git]
          [--watch <text>]... [--note-from <run copy>] [--allow <rule>]...
          [--base-settings <settings.json>] [--deny-read <dir>]... [--token-file <file>]
+         [--teams] [--setup-only]
 
 Builds <out>/work, a writable copy of --src:
   - every mention of the --src path is rewritten to the work path, and the run
@@ -30,6 +31,12 @@ claudeMdExcludes for every ancestor memory file, so only the copy's own
 CLAUDE.md loads, plus each --allow rule (e.g. "Bash(git log:*)") in
 permissions.allow: without one, a headless run is denied every tool that asks. A run's own parent folders cannot be denied (the copy lives
 in them), so paths it names outside the copy are recorded instead.
+
+--teams turns on agent teams in run-settings.json only (its env block). --setup-only
+stops before `claude` starts: it writes <out>/launch.sh, which starts the same
+isolated session interactively (no -p) from the caller's terminal, reading the
+token from --token-file at launch, and prints its path; run.json then records
+the setup only. Agent teams need an interactive session.
 
 Writes stream.jsonl, stderr.log, init.json, result.md and run.json (setup
 checks, the harness's and the skill's git versions, and metrics summed over every
@@ -57,7 +64,7 @@ from collections import Counter
 HARNESS = os.path.dirname(os.path.abspath(__file__))
 SKIP_REWRITE = {".git", "node_modules"}
 sys.path.insert(0, HARNESS)  # python3 -I leaves the script's folder off the path
-from isolation import base_env  # noqa: E402
+from isolation import KEEP, base_env  # noqa: E402
 
 
 def ancestor_excludes(work):
@@ -407,6 +414,30 @@ def metrics(calls, result, work, results=None, watch=()):
     }
 
 
+def launch_script(out, work, token_file, env, args):
+    """<out>/launch.sh: the run's isolated session, started interactively. Only the
+    allowlisted variables come from the terminal that runs it; the token is read
+    from token_file then, never written into the run folder."""
+    keep = " ".join(sorted(KEEP | {"HOME"}))
+    fixed = " ".join(f"{k}={shlex.quote(v)}" for k, v in sorted(env.items())
+                     if k not in KEEP and k != "HOME" and k != "CLAUDE_CODE_OAUTH_TOKEN")
+    text = f"""#!/usr/bin/env bash
+# Interactive session for this run folder: the same isolation as a headless run, no -p.
+set -euo pipefail
+keep=()
+for k in {keep} $(compgen -e | grep '^LC_' || true); do
+  if [ -n "${{!k+x}}" ]; then keep+=("$k=${{!k}}"); fi
+done
+token=$(cat {shlex.quote(os.path.realpath(token_file))})
+cd {shlex.quote(work)}
+exec env -i "${{keep[@]}}" {fixed} CLAUDE_CODE_OAUTH_TOKEN="$token" \\
+  {" ".join(shlex.quote(x) for x in args)}
+"""
+    open(f"{out}/launch.sh", "w").write(text)
+    os.chmod(f"{out}/launch.sh", 0o755)
+    return f"{out}/launch.sh"
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--arm", choices=["with", "without"], required=True)
@@ -430,10 +461,16 @@ def main():
                     help="folder the run may not Read/Grep/Glob (repeatable; e.g. the answer keys)")
     ap.add_argument("--token-file", default=os.environ.get("ONBOARD_TOKEN_FILE"),
                     help="file holding a `claude setup-token` token (or $ONBOARD_TOKEN_FILE)")
+    ap.add_argument("--teams", action="store_true",
+                    help="turn on agent teams in this run's settings only")
+    ap.add_argument("--setup-only", action="store_true",
+                    help="set the run up, write <out>/launch.sh for an interactive session, stop")
     ap.add_argument("--model", default="sonnet")
     ap.add_argument("--max-turns", default="30")
     ap.add_argument("--timeout", type=int, default=1800, help="seconds")
     a = ap.parse_args()
+    if a.setup_only and not a.token_file:
+        sys.exit("run: --setup-only needs --token-file (launch.sh reads the token from it)")
 
     src, out = os.path.realpath(a.src), os.path.realpath(a.out)
     if os.path.lexists(out):
@@ -477,6 +514,8 @@ def main():
         if x.startswith("@") else [x])]
     if allow:
         settings["permissions"].setdefault("allow", []).extend(allow)
+    if a.teams:
+        settings.setdefault("env", {})["CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"] = "1"
     json.dump(settings, open(f"{out}/run-settings.json", "w"), indent=2)
 
     prompt = open(a.prompt[1:]).read() if a.prompt.startswith("@") else a.prompt
@@ -488,10 +527,21 @@ def main():
     env = base_env(a.token_file, keep=("HOME", "npm_config_cache"))
     env.update(CLAUDE_CONFIG_DIR=cfg, CLAUDE_CODE_DISABLE_AUTO_MEMORY="1",
                ENABLE_CLAUDEAI_MCP_SERVERS="false", GIT_CEILING_DIRECTORIES=out)
+    isolated = ["--settings", f"{out}/run-settings.json",
+                "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
+    if a.setup_only:
+        launch = launch_script(out, work, a.token_file, env, ["claude", "--model", a.model] + isolated)
+        json.dump({"arm": a.arm, "setup_only": True, "src": src, "model": a.model, "git": git_mode,
+                   "harness": harness_version(),
+                   "skill": harness_version(os.path.realpath(a.skill)) if a.arm == "with" else None,
+                   "env_keys": sorted(k for k in env if "TOKEN" not in k),
+                   "paths_rewritten_files": rewritten, "planted": planted, "prepare": a.prepare,
+                   "prepared": prepared, "note_from": a.note_from, "notes": notes, "allow": allow,
+                   "teams": a.teams}, open(f"{out}/run.json", "w"), indent=2)
+        print(json.dumps({"arm": a.arm, "setup_only": True, "launch": launch}))
+        return
     cmd = ["claude", "-p", "--model", a.model, "--output-format", "stream-json",
-           "--verbose", "--include-hook-events", "--max-turns", a.max_turns,
-           "--settings", f"{out}/run-settings.json",
-           "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
+           "--verbose", "--include-hook-events", "--max-turns", a.max_turns] + isolated
     started, timed_out = time.time(), False
     with open(f"{out}/stream.jsonl", "w") as so, open(f"{out}/stderr.log", "w") as se:
         try:

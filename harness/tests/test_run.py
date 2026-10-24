@@ -414,3 +414,43 @@ def test_subagent_prompts_and_edits(tmp_path):
         == [("fix it", "general-purpose", [note]), ("look", None, [])]
     assert m["subagent_prompts"][0]["prompt"].startswith("Fix the bug.")
     assert (m["edits_main"], m["edits_subagents"]) == (1, 2)
+
+
+def test_setup_only_writes_an_interactive_launch_with_the_same_isolation(tmp_path):
+    bin_dir, snap, skill, token = setup(tmp_path)
+    out = tmp_path / "runs" / "with-i"
+    r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(snap), "--out", str(out),
+            "--prompt", "hello", "--skill", str(skill), "--token-file", str(token),
+            "--deny-read", str(tmp_path / "keys"), "--teams", "--setup-only")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert not os.path.exists(tmp_path / "args.json")  # claude was not started
+    assert not os.path.exists(out / "stream.jsonl")
+    rec = json.load(open(out / "run.json"))
+    assert rec["setup_only"] and rec["teams"]
+    settings = json.load(open(out / "run-settings.json"))
+    assert settings["env"] == {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"}
+    assert "Bash(*../*)" in settings["permissions"]["deny"]
+    assert os.path.isdir(out / "work/.claude/skills/onboard")
+    launch = open(out / "launch.sh").read()
+    assert "tok-123" not in launch  # read from the token file at launch, not stored
+    # the launch carries the isolation: run it from a "terminal" with a leaky environment
+    env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}", ANTHROPIC_API_KEY="k",
+               CLAUDE_EFFORT="max")
+    subprocess.run(["bash", str(out / "launch.sh")], env=env, input="", capture_output=True,
+                   text=True, check=True)
+    args = json.load(open(tmp_path / "args.json"))
+    assert args["cwd"] == str(out / "work") and args["cfg"] == str(out / "cfg")
+    assert args["token"] == "tok-123" and args["api"] is None and args["leak"] is None
+    assert "-p" not in args["argv"]
+    assert args["argv"][args["argv"].index("--settings") + 1] == str(out / "run-settings.json")
+    assert "--strict-mcp-config" in args["argv"]
+
+
+def test_setup_only_needs_a_token_file_and_teams_stay_off_by_default(tmp_path):
+    bin_dir, snap, skill, token = setup(tmp_path)
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap),
+            "--out", str(tmp_path / "runs/w-1"), "--prompt", "hi", "--setup-only")
+    assert r.returncode != 0 and "--token-file" in r.stderr
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap),
+            "--out", str(tmp_path / "runs/w-2"), "--prompt", "hi", "--skill", str(skill))
+    assert "env" not in json.load(open(tmp_path / "runs/w-2/run-settings.json"))
