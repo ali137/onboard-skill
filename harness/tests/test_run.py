@@ -444,7 +444,11 @@ def test_setup_only_writes_an_interactive_launch_with_the_same_isolation(tmp_pat
     assert args["token"] == "tok-123" and args["api"] is None and args["leak"] is None
     assert "-p" not in args["argv"]
     assert args["argv"][args["argv"].index("--settings") + 1] == str(out / "run-settings.json")
-    assert "--strict-mcp-config" in args["argv"]
+    assert "--strict-mcp-config" in args["argv"] and "--name" not in args["argv"]
+    subprocess.run(["bash", str(out / "launch.sh"), "bakery-pricing"], env=env, input="",
+                   capture_output=True, text=True, check=True)  # named, as phase 12's sessions
+    argv = json.load(open(tmp_path / "args.json"))["argv"]
+    assert argv[argv.index("--name") + 1] == "bakery-pricing"
 
 
 def test_setup_only_needs_a_token_file_and_teams_stay_off_by_default(tmp_path):

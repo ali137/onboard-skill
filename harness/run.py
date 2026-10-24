@@ -37,7 +37,7 @@ permissions.allow: without one, a headless run is denied every tool that asks. A
 in them), so paths it names outside the copy are recorded instead.
 
 --teams turns on agent teams in run-settings.json only (its env block). --setup-only
-stops before `claude` starts: it writes <out>/launch.sh, which starts the same
+stops before `claude` starts: it writes <out>/launch.sh [<session name>], which starts the same
 isolated session interactively (no -p) from the caller's terminal, reading the
 token from --token-file at launch, and prints its path; run.json then records
 the setup only. Agent teams need an interactive session. An interactive session
@@ -485,9 +485,10 @@ def metrics(calls, result, work, results=None, watch=()):
 
 
 def launch_script(out, work, token_file, env, args):
-    """<out>/launch.sh: the run's isolated session, started interactively. Only the
-    allowlisted variables come from the terminal that runs it; the token is read
-    from token_file then, never written into the run folder."""
+    """<out>/launch.sh [<name>]: the run's isolated session, started interactively,
+    named <name> when given (claude --name). Only the allowlisted variables come
+    from the terminal that runs it; the token is read from token_file then, never
+    written into the run folder."""
     keep = " ".join(sorted(KEEP | {"HOME"}))
     fixed = " ".join(f"{k}={shlex.quote(v)}" for k, v in sorted(env.items())
                      if k not in KEEP and k != "HOME" and k != "CLAUDE_CODE_OAUTH_TOKEN")
@@ -501,7 +502,7 @@ done
 token=$(cat {shlex.quote(os.path.realpath(token_file))})
 cd {shlex.quote(work)}
 exec env -i "${{keep[@]}}" {fixed} CLAUDE_CODE_OAUTH_TOKEN="$token" \\
-  {" ".join(shlex.quote(x) for x in args)}
+  {" ".join(shlex.quote(x) for x in args)} ${{1:+--name "$1"}}
 """
     open(f"{out}/launch.sh", "w").write(text)
     os.chmod(f"{out}/launch.sh", 0o755)
