@@ -5,7 +5,7 @@
          [--skill <skill folder>] [--plant <plant.json>] [--prepare <command>] [--keep-git]
          [--watch <text>]... [--note-from <run copy>] [--allow <rule>]...
          [--base-settings <settings.json>] [--deny-read <dir>]... [--token-file <file>]
-         [--teams] [--setup-only]
+         [--teams] [--setup-only] [--permission-mode <mode>]
 
 Builds <out>/work, a writable copy of --src:
   - every mention of the --src path is rewritten to the work path, and the run
@@ -40,7 +40,10 @@ in them), so paths it names outside the copy are recorded instead.
 stops before `claude` starts: it writes <out>/launch.sh, which starts the same
 isolated session interactively (no -p) from the caller's terminal, reading the
 token from --token-file at launch, and prints its path; run.json then records
-the setup only. Agent teams need an interactive session.
+the setup only. Agent teams need an interactive session. An interactive session
+starts in auto mode unless told otherwise (Claude Code 2.1.283 on), so launch.sh
+always passes --permission-mode: auto by default (what phases 10 and 12 had), or
+the mode given. A headless run passes it only when given. run.json records it.
 
 Writes stream.jsonl, stderr.log, init.json, result.md and run.json (setup
 checks, the harness's and the skill's git versions, and metrics summed over every
@@ -532,12 +535,17 @@ def main():
                     help="turn on agent teams in this run's settings only")
     ap.add_argument("--setup-only", action="store_true",
                     help="set the run up, write <out>/launch.sh for an interactive session, stop")
+    ap.add_argument("--permission-mode", choices=["acceptEdits", "auto", "bypassPermissions",
+                                                  "manual", "dontAsk", "plan"],
+                    help="the session's permission mode (--setup-only default: auto)")
     ap.add_argument("--model", default="sonnet")
     ap.add_argument("--max-turns", default="30")
     ap.add_argument("--timeout", type=int, default=1800, help="seconds")
     a = ap.parse_args()
     if a.setup_only and not a.token_file:
         sys.exit("run: --setup-only needs --token-file (launch.sh reads the token from it)")
+    if a.setup_only and not a.permission_mode:
+        a.permission_mode = "auto"
 
     src, out = os.path.realpath(a.src), os.path.realpath(a.out)
     if os.path.lexists(out):
@@ -598,6 +606,8 @@ def main():
                ENABLE_CLAUDEAI_MCP_SERVERS="false", GIT_CEILING_DIRECTORIES=out)
     isolated = ["--settings", f"{out}/run-settings.json",
                 "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
+    if a.permission_mode:
+        isolated += ["--permission-mode", a.permission_mode]
     if a.setup_only:
         # an interactive session auto-updates the installed claude (2.1.308 -> 2.1.310 in
         # phase 10's smoke session), which changes it for every later run
@@ -609,7 +619,7 @@ def main():
         "paths_rewritten_files": rewritten, "planted": planted,
         "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
         "note_hash": note_hash,
-        "allow": allow, "teams": a.teams,
+        "allow": allow, "teams": a.teams, "permission_mode": a.permission_mode,
     }
     if a.setup_only:
         launch = launch_script(out, work, a.token_file, env, ["claude", "--model", a.model] + isolated)

@@ -553,3 +553,23 @@ def test_run_settings_hold_no_deny_rule_that_never_matches(tmp_path):
     assert deny == ["Edit(//k/**)", "Write(~/solo/**)", "Bash(rm *k*)", f"Read(/{k}/**)",
                     f"Grep(/{k}/**)", f"Bash(*{k}*)", "Bash(*../*)"]
     assert json.load(open(base))["permissions"]["deny"][1] == "Write(//k/**)"  # base unchanged
+
+
+def test_permission_mode_is_explicit_for_an_interactive_session(tmp_path):
+    """Interactive sessions start in auto mode unless told (2.1.283 on): launch.sh always
+    names the mode (auto by default, or the one given) and run.json records it; a
+    headless run passes a mode only when given."""
+    bin_dir, snap, skill, token = setup(tmp_path)
+    for n, extra, want in [(1, [], "auto"), (2, ["--permission-mode", "manual"], "manual")]:
+        out = tmp_path / f"runs/i-{n}"
+        r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap), "--out", str(out),
+                "--prompt", "hi", "--token-file", str(token), "--setup-only", *extra)
+        assert r.returncode == 0, r.stdout + r.stderr
+        launch = open(out / "launch.sh").read().split()
+        assert launch[launch.index("--permission-mode") + 1] == want
+        assert json.load(open(out / "run.json"))["permission_mode"] == want
+    out = tmp_path / "runs/h-1"
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill))
+    assert "--permission-mode" not in json.load(open(tmp_path / "args.json"))["argv"]
+    assert json.load(open(out / "run.json"))["permission_mode"] is None
