@@ -477,3 +477,15 @@ def test_git_diff_of_a_revision_is_a_history_read():
                 "git diff --cached app.py", "git status && git diff app.py", "git diff -- a~b"]:
         assert not rh("Bash", {"command": cmd}), cmd
     assert not rh("Read", {"command": "git diff abc1234"})
+
+
+def test_outside_paths_include_temp_folders(tmp_path):
+    """A scratch file written to /tmp (pipeline-no-data-cold-2's /tmp/dbg_mf02.py) is
+    outside the copy and is recorded; a path inside the copy is not."""
+    op = harness_module("run").outside_paths
+    work = str(tmp_path / "runs/x/work")
+    calls = {"a": ("Write", None, {"file_path": "/tmp/dbg_mf02.py", "content": "x"}),
+             "b": ("Bash", None, {"command": "python3 /var/tmp/s.py && ls /usr/bin"}),
+             "c": ("Read", None, {"file_path": f"{work}/app.py"}),
+             "d": ("Bash", None, {"command": "cat /tmpfile"})}
+    assert op(calls, work) == ["/tmp/dbg_mf02.py", "/var/tmp/s.py"]

@@ -275,15 +275,19 @@ def harness_version(path=HARNESS):
 
 def outside_paths(calls, work):
     """Paths a tool call named outside the copy: absolute paths under the caller's
-    home, and any ~/ or $HOME path. A run that reads the lab (keys, other runs)
-    or the caller's own files shows up here."""
-    home = os.path.realpath(os.path.expanduser("~"))
+    home or a temp folder (/tmp, /var/tmp, $TMPDIR), and any ~/ or $HOME path. A run
+    that reads the lab (keys, other runs) or the caller's own files, or writes a
+    scratch file outside its copy, shows up here."""
+    roots = {os.path.realpath(os.path.expanduser("~")), "/tmp", "/var/tmp"}
+    if os.environ.get("TMPDIR"):
+        roots.add(os.path.realpath(os.environ["TMPDIR"]))
     found = set()
     for _, _, inp in calls.values():
         text = json.dumps(inp)
         for m in re.finditer(r"(?:^|[\s'\"=(])(/[^\s'\"`;|&)]+)", text):
             p = m.group(1).rstrip(".,:\\")
-            if p.startswith(home + "/") and not (p + "/").startswith(work + "/"):
+            if (any(p == r or p.startswith(r + "/") for r in roots)
+                    and not (p + "/").startswith(work + "/")):
                 found.add(p)
         found |= set(re.findall(r"(?:~|\$HOME|\$\{HOME\})/[^\s'\"`;|&)]*", text))
         found |= set(re.findall(r"(?:\.\./)+[^\s'\"`;|&)]*", text))
