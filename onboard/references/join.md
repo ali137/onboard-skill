@@ -34,6 +34,11 @@ Skip any file that does not exist and remember that it was missing.
    matches your task (same symptom, same files, same area). Your task is the
    one you were given now; a note that would matter only if you later touched
    another area does not match. Do not open the rest.
+7. **Live sessions:** `team/SESSIONS.md`, if it exists, and work out who is
+   live and whether cooperation is on (`cooperate.md` rule 1; your starting
+   prompt saying other sessions are live also turns it on). If it is on, read
+   your domains as `cooperate.md` rules 2-3 say. If it is off, read nothing
+   more here.
 
 No project files at all (none of the above, no README): say so, ask the lead
 what the project is, and **stop** (a stop case, see step 6).
@@ -98,7 +103,10 @@ missing and your question. No briefing sections, no "Waiting for go."
 ## 7. Wait
 
 End the whole message with "Waiting for go." Start the work only after "go" from the lead
-(the user in a solo session, the lead agent in a team).
+(the user in a solo session, the lead agent in a team). Your first acts after "go":
+the unreachable notices of `cooperate.md` rule 1, if any; then, if cooperation
+is on, sign-in (rule 4) and overlap (rule 5); follow its rules until you sign
+off.
 
 ## The briefing
 
@@ -119,7 +127,7 @@ only when the files set no rules at all.
 ## Briefing: <name or role>
 
 1. **Who I am:** <role>; reports to <lead>.
-2. **Team:** <name (role), ...> or "solo session".
+2. **Team:** <name (role), ...> or "solo session". Cooperation on: live sessions <name (domains, status)>, my domains <...>, overlap <...> or "none". Cooperation off: say nothing about it.
 3. **Where things stand:** Project: <what it is, in one line>. Phase: <n, name> (<file>), or with no phase plan, current focus: <what recent history shows> (from <git log / changelog>). Last finished step: <...>.
 4. **Drift found:** <claim> (<file>): checked <what>, found <what>. Or "none".
 5. **Rule conflicts:** <rule> (<file>) vs <rule> (<file>); following <the stricter>. Or "none".
@@ -130,6 +138,8 @@ only when the files set no rules at all.
 10. **Questions for the lead:** <numbered questions>. Or "none".
 
 <the session prompt's "first reply", in full, if it has one>
+
+<cooperation on and no team/DOMAINS.md: the draft domain list for the lead (cooperate.md rule 2)>
 
 Waiting for go.
 ```

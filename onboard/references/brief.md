@@ -7,7 +7,7 @@ and any draft role card, are printed in the reply for the lead to use.
 
 1. **Input:** the role name and the task, from the arguments or the request.
    Either one missing: ask the lead for it and stop.
-2. **Read** the same files as join mode, `join.md` step 2, items 1-6, with the
+2. **Read** the same files as join mode, `join.md` step 2, items 1-7, with the
    newcomer's role and task in mind (its role card, the notes matching its task).
    Read `team/experience/INDEX.md` and open only the notes whose line matches
    the task. Do not run the quick check; the newcomer does that.
@@ -40,5 +40,15 @@ Matching experience notes (open only these):
 - <path>: <one line on why it matches>
 (or "none")
 
+<only when other live sessions work on the project (`cooperate.md` rule 1):>
+Other live sessions: <name (domains)>. Your domains: <the lead's choice, or the
+role card's "Domains">. Follow the onboard skill's cooperation rules
+(`references/cooperate.md`): read team/SESSIONS.md and your domains' files in
+team/questions/ and team/research/, and sign in to team/SESSIONS.md after go.
+
 Run onboard first, then wait for go.
 ```
+
+When other live sessions work on the project, add one line after the prompt,
+addressed to the lead: "Start this session as `claude --name <project>-<role>`
+(a session cannot rename itself)." 
