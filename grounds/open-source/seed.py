@@ -5,7 +5,9 @@
   seed.py <copy> --bug <id> --restore    put the fix back
   seed.py <copy> --prove [--bug <id>]    named test green, seed, red, restore, green
   seed.py <copy> --bug <id> --check [--out <json>]
-                                         is it fixed? the bug's whole test file runs;
+                                         is it fixed? the bug's whole test file runs, as HEAD
+                                         has it, and a changed test-setup file fails it
+                                         (../test_guard.py);
                                          prints (and writes) the named test's status
                                          and every failure; exit 0 fixed, 1 not
 
@@ -29,6 +31,9 @@ import sys
 import tempfile
 
 GROUND = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ground.json")))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from test_guard import committed_test_file  # noqa: E402
+SETUP_FILES = ("vitest.config.*", "vitest.workspace.*", "silence-output.ts")
 
 
 def fix_diff(copy, bug):
@@ -140,7 +145,11 @@ def main():
     if not a.bug:
         ap.error("--bug is required unless --prove")
     if a.check:
-        r = summarize(vitest_report(copy, GROUND["bugs"][a.bug]), a.bug)
+        bug = GROUND["bugs"][a.bug]
+        with committed_test_file(copy, bug["test"], SETUP_FILES) as guard:
+            r = summarize(vitest_report(copy, bug), a.bug)
+        r["test_guard"] = guard
+        r["fixed"] = r["fixed"] and guard["ok"]
         if a.out:
             json.dump(r, open(a.out, "w"), indent=2)
         print(json.dumps(r, indent=2))

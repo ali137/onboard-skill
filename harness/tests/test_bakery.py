@@ -54,3 +54,34 @@ def test_each_bug_is_proved_and_check_reports_it(tmp_path):
     assert py(seed, str(work), "--bug", "rounding", "--restore").returncode == 0
     r = py(seed, str(work), "--bug", "rounding", "--check")
     assert r.returncode == 0 and json.loads(r.stdout)["fixed"]
+
+
+def test_check_ignores_test_file_edits_and_fails_a_new_conftest(tmp_path):
+    """The test-file guard: a run that weakens the named test, or adds a conftest.py
+    that patches the code, has not fixed the bug. The check runs HEAD's test file and
+    puts the run's own file back afterwards."""
+    work = tmp_path / "w"
+    build(work)
+    seed = os.path.join(GROUND, "seed.py")
+    assert py(seed, str(work), "--bug", "rounding").returncode == 0
+    test = work / "tests/test_pricing.py"
+    weakened = open(test).read().replace('    assert line.net == Decimal("1.95")\n', "")
+    open(test, "w").write(weakened)
+    r = py(seed, str(work), "--bug", "rounding", "--check")
+    verdict = json.loads(r.stdout)
+    assert r.returncode == 1 and not verdict["fixed"]
+    assert verdict["named_tests"] == {"test_wholesale_discount_rounds_half_up": "failed"}
+    assert verdict["test_guard"]["test_file_changed"] == ['-    assert line.net == Decimal("1.95")']
+    assert open(test).read() == weakened  # the run's file is back
+    assert py(seed, str(work), "--bug", "rounding", "--restore").returncode == 0
+    conftest = work / "tests/conftest.py"  # the code is right now; only the conftest fails it
+    conftest.write_text("# a run's own fixture file\n")
+    r = py(seed, str(work), "--bug", "rounding", "--check")
+    verdict = json.loads(r.stdout)
+    assert r.returncode == 1 and not verdict["fixed"] and verdict["named_status"] == "passed"
+    assert verdict["test_guard"]["setup_files"] == ["tests/conftest.py"]
+    conftest.unlink()
+    r = py(seed, str(work), "--bug", "rounding", "--check")
+    verdict = json.loads(r.stdout)
+    assert r.returncode == 0 and verdict["fixed"], r.stdout
+    assert verdict["test_guard"]["ok"] and verdict["test_guard"]["lines_added"] == 0

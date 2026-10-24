@@ -5,7 +5,9 @@
   seed.py <copy> --bug <id> --restore    take it out again
   seed.py <copy> --prove [--bug <id>]    test file green, seed, named test red, restore, green
   seed.py <copy> --bug <id> --check [--out <json>]
-                                         is it fixed? the bug's whole test file runs;
+                                         is it fixed? the bug's whole test file runs, as HEAD
+                                         has it, and a changed test-setup file fails it
+                                         (../test_guard.py);
                                          prints (and writes) the named tests' status
                                          (named_status: passed only if all passed)
                                          and every failure; exit 0 fixed, 1 not
@@ -28,6 +30,9 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 GROUND = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ground.json")))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from test_guard import committed_test_file  # noqa: E402
+SETUP_FILES = ("conftest.py", "pytest.ini")
 
 
 def state(copy, bug_id):
@@ -77,7 +82,8 @@ def run_tests(copy, bug):
 
 def summarize(copy, bug_id):
     bug = GROUND["bugs"][bug_id]
-    tests = run_tests(copy, bug)
+    with committed_test_file(copy, bug["test"], SETUP_FILES) as guard:
+        tests = run_tests(copy, bug)
     named = {n: [s for t, s, _ in tests if t == n] for n in bug["test_names"]}
     named = {n: s[0] if len(s) == 1 else f"found {len(s)} times" for n, s in named.items()}
     failed = [{"test": t, "message": m} for t, s, m in tests if s == "failed"]
@@ -86,7 +92,8 @@ def summarize(copy, bug_id):
     return {"bug": bug_id, "test_file": bug["test"], "named_tests": named, "named_status": status,
             "tests": len(tests),
             "passed": sum(1 for _, s, _ in tests if s == "passed"), "failed": failed,
-            "fixed": status == "passed" and not failed and bool(tests)}
+            "test_guard": guard,
+            "fixed": status == "passed" and not failed and bool(tests) and guard["ok"]}
 
 
 def prove(copy, ids):
