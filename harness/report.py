@@ -19,7 +19,9 @@ many of those hit a watch string (the per-hit flag is in run.json from harness 6
 Bars:
 - onboarding, per graded with-arm condition: every run has a sound
   setup, scores at least 7/8 and catches the planted claim; an ungraded run
-  counts as not passing.
+  counts as not passing. A --setup-only run (an interactive session, graded from
+  its transcript) has no launch check: its setup shows "–", its pass is the
+  grade's, and its condition gets no bar line.
 - experience note, per bug with both <bug>-cold and <bug>-note runs:
   every with-note run is fixed, and the with-note medians of tool calls and of
   tokens are each at least 30% below the cold medians.
@@ -84,9 +86,11 @@ def row(d):
     index_read, note_read = note_reads(d)
     return {
         "run": name, "condition": re.sub(r"-\d+$", "", name), "arm": run.get("arm") or "–",
-        "setup_ok": run.get("ok"), "score": grade.get("score"),
+        "setup_ok": None if run.get("setup_only") else run.get("ok"), "score": grade.get("score"),
         "caught": grade.get("planted_claim_caught"),
-        "passes": bool(run.get("ok") and grade.get("passes_bar")) if grade else None,
+        "passes": bool((run.get("ok") or run.get("setup_only")) and grade.get("passes_bar"))
+        if grade else None,
+        "setup_only": bool(run.get("setup_only")),
         "graded": bool(grade.get("ok")),
         "split": grade.get("split_questions"),
         "fixed": fixed.get("fixed") if fixed else None,
@@ -181,7 +185,7 @@ def main():
     lines = []
     for c, rs in groups.items():
         if all(r["arm"] == "with" for r in rs) and any(r["graded"] for r in rs) \
-                and not any(r["fixed"] is not None for r in rs):
+                and not any(r["fixed"] is not None or r["setup_only"] for r in rs):
             ok = all(r["passes"] for r in rs)
             lines.append(f"- **Onboarding bar, {c}:** {'passed' if ok else 'failed'} "
                          f"({sum(1 for r in rs if r['passes'])}/{len(rs)} runs at least 7/8 with the claim caught).")

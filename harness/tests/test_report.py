@@ -125,3 +125,13 @@ def test_handdown_bar(tmp_path):
 def test_no_handdown_columns_without_handdown_runs(tmp_path):
     out = report(make(tmp_path, "garden-with-1", grade=(8, True)))
     assert "subagent prompts" not in out and "Hand-down" not in out
+
+
+def test_setup_only_run_passes_by_its_grade_and_gets_no_bar_line(tmp_path):
+    d = make(tmp_path, "bakery-interactive-with", grade=(8, True))
+    r = json.load(open(os.path.join(d, "run.json")))
+    r.update(ok=None, setup_only=True)
+    open(os.path.join(d, "run.json"), "w").write(json.dumps(r))
+    out = report(d)
+    assert "| bakery-interactive-with | with | – | 8 | yes | yes |" in out
+    assert "Onboarding bar" not in out
