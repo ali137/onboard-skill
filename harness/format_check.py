@@ -53,12 +53,13 @@ def check_briefing(text):
     present = [t for t in BRIEFING if found[t] is not None]
     out_of_order = [b for a, b in zip(present, present[1:]) if found[b] < found[a]]
 
-    end = next((i for i, l in enumerate(lines) if re.search(
-        r"waiting for go|go given in the starting prompt", l, re.IGNORECASE)), None)
-    n_lines, empty, clauses = 0, [], []
+    end, n_lines, empty, clauses = None, 0, [], []
     if present and not out_of_order:
         first, last = found[present[0]], found[present[-1]]
-        stop = len(lines)  # the briefing ends at "Waiting for go." or the next heading or bold line
+        # the end line counts only after the last section's line, never inside a section
+        end = next((i for i in range(last + 1, len(lines)) if re.search(
+            r"waiting for go|go given in the starting prompt", lines[i], re.IGNORECASE)), None)
+        stop = len(lines)  # the briefing ends at the end line or the next heading or bold line
         for i in range(last + 1, len(lines)):
             if (end is not None and i >= end) or re.match(r"^\s*(#|\*\*|__)", lines[i]):
                 stop = i

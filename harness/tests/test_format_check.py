@@ -83,3 +83,17 @@ def test_the_phase_13_briefing():
     r = fc.check_briefing(started + "\nNow fixing bakery/inventory.py.\n")
     assert r["ok"] and r["waiting_for_go"]
     assert not fc.check_briefing(briefing().replace("Waiting for go.", ""))["ok"]
+
+
+def test_end_line_inside_a_section_does_not_end_the_briefing():
+    """The end line counts only after the last section: a section that quotes it neither
+    ends the briefing early nor stands in for the missing end line."""
+    quoting = briefing(bodies={"Where things stand": "Project: a CLI. The lead's prompt says go "
+                                                     "given in the starting prompt counts."})
+    r = fc.check_briefing(quoting)
+    assert r["ok"] and r["sections_found"] == 12 and r["briefing_lines"] == 12, r
+    r = fc.check_briefing(quoting.replace("Waiting for go.", ""))
+    assert not r["waiting_for_go"] and not r["ok"]
+    inside = briefing("### {n}. {t}\n{body}", bodies={"Settled decisions": "none\nWaiting for go."})
+    r = fc.check_briefing(inside.removesuffix("\nWaiting for go.\n"))
+    assert r["sections_found"] == 12 and not r["waiting_for_go"] and not r["ok"], r
