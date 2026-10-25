@@ -4,7 +4,7 @@
   seed.py <copy> --bug <id>              seed: put the bug into the clean code
   seed.py <copy> --bug <id> --restore    take it out again
   seed.py <copy> --prove [--bug <id>]    test file green, seed, named test red, restore, green
-  seed.py <copy> --bug <id> --check [--out <json>]
+  seed.py <copy> --bug <id> --check [--out <json>] [--base <rev>]
                                          is it fixed? the bug's whole test file runs, as HEAD
                                          has it, and a changed test-setup file fails it
                                          (../test_guard.py);
@@ -32,7 +32,7 @@ import xml.etree.ElementTree as ET
 GROUND = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ground.json")))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from test_guard import committed_test_file  # noqa: E402
-SETUP_FILES = ("conftest.py", "pytest.ini")
+SETUP_FILES = ("conftest.py", "pytest.ini", "pyproject.toml", "tox.ini", "setup.cfg")
 
 
 def state(copy, bug_id):
@@ -80,9 +80,9 @@ def run_tests(copy, bug):
         return tests
 
 
-def summarize(copy, bug_id):
+def summarize(copy, bug_id, base="HEAD"):
     bug = GROUND["bugs"][bug_id]
-    with committed_test_file(copy, bug["test"], SETUP_FILES) as guard:
+    with committed_test_file(copy, bug["test"], SETUP_FILES, base) as guard:
         tests = run_tests(copy, bug)
     named = {n: [s for t, s, _ in tests if t == n] for n in bug["test_names"]}
     named = {n: s[0] if len(s) == 1 else f"found {len(s)} times" for n, s in named.items()}
@@ -128,6 +128,9 @@ def main():
     ap.add_argument("--prove", action="store_true")
     ap.add_argument("--check", action="store_true", help="is the bug fixed in the copy?")
     ap.add_argument("--out", help="with --check: also write the result here")
+    ap.add_argument("--base", default="HEAD",
+                    help="with --check: the revision test files are compared with "
+                         "(a run's prepared_head)")
     a = ap.parse_args()
     copy = os.path.abspath(a.copy)
     if not os.path.isdir(copy):
@@ -139,7 +142,7 @@ def main():
     if not a.bug:
         ap.error("--bug is required unless --prove")
     if a.check:
-        r = summarize(copy, a.bug)
+        r = summarize(copy, a.bug, a.base)
         if a.out:
             json.dump(r, open(a.out, "w"), indent=2)
         print(json.dumps(r, indent=2))

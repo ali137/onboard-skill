@@ -57,3 +57,23 @@ def test_each_bug_is_proved_and_check_reports_it(tmp_path):
     assert py(seed, str(work), "--bug", "hold-order", "--restore").returncode == 0
     r = py(seed, str(work), "--bug", "hold-order", "--check")
     assert r.returncode == 0 and json.loads(r.stdout)["fixed"]
+
+
+def test_check_guards_a_committed_test_edit(tmp_path):
+    """The test-file guard against the prepared HEAD: a run that empties the bug's test
+    file and commits it has not fixed the bug; its own file is put back afterwards."""
+    work = tmp_path / "w"
+    build(work)
+    seed = os.path.join(GROUND, "seed.py")
+    assert py(seed, str(work), "--bug", "hold-order").returncode == 0
+    git = ["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(git + ["commit", "-qam", "seeded"], check=True)
+    prepared = subprocess.run(git + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    test = work / "test/returns.test.ts"
+    test.write_text("// emptied by a run\n")
+    subprocess.run(git + ["commit", "-qam", "a run's commit"], check=True)
+    r = py(seed, str(work), "--bug", "hold-order", "--check", "--base", prepared)
+    verdict = json.loads(r.stdout)
+    assert r.returncode == 1 and verdict["named_status"] == "failed", r.stdout
+    assert verdict["test_guard"]["test_file_changed"] and verdict["test_guard"]["ok"]
+    assert test.read_text() == "// emptied by a run\n"

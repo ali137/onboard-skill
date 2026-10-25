@@ -79,3 +79,31 @@ def test_no_data_check_runs_its_acceptance_test_and_leaves_nothing(tmp_path):
     status = subprocess.run(["git", "-C", str(work), "status", "--porcelain"],
                             capture_output=True, text=True).stdout
     assert status == ""  # the acceptance file was removed again
+
+
+def test_check_guards_a_committed_test_edit_and_a_pytest_config(tmp_path):
+    """The test-file guard against the prepared HEAD: a run that empties the bug's test
+    file and commits it has not fixed the bug, and a new tests/pyproject.toml (pytest
+    reads its config) fails the check."""
+    work = tmp_path / "w"
+    build(work)
+    seed = os.path.join(GROUND, "seed.py")
+    assert py(seed, str(work), "--bug", "reexport").returncode == 0
+    git = ["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(git + ["commit", "-qam", "seeded"], check=True)
+    prepared = subprocess.run(git + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    test = work / "tests/test_batch.py"
+    test.write_text("# emptied by a run\n")
+    subprocess.run(git + ["commit", "-qam", "a run's commit"], check=True)
+    r = py(seed, str(work), "--bug", "reexport", "--check", "--base", prepared)
+    verdict = json.loads(r.stdout)
+    assert r.returncode == 1 and verdict["named_status"] == "failed"
+    assert verdict["test_guard"]["base"] == prepared and verdict["test_guard"]["test_file_changed"]
+    assert test.read_text() == "# emptied by a run\n"  # the run's file is back
+    assert py(seed, str(work), "--bug", "reexport", "--restore").returncode == 0
+    subprocess.run(git + ["checkout", "-q", prepared, "--", "tests/test_batch.py"], check=True)
+    (work / "tests/pyproject.toml").write_text("[tool.pytest.ini_options]\n")
+    r = py(seed, str(work), "--bug", "reexport", "--check", "--base", prepared)
+    verdict = json.loads(r.stdout)
+    assert r.returncode == 1 and verdict["named_status"] == "passed"
+    assert verdict["test_guard"]["setup_files"] == ["tests/pyproject.toml"]

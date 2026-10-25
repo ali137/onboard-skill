@@ -4,7 +4,7 @@
   seed.py <copy> --bug <id>              seed: reverse the source half of the fix
   seed.py <copy> --bug <id> --restore    put the fix back
   seed.py <copy> --prove [--bug <id>]    named test green, seed, red, restore, green
-  seed.py <copy> --bug <id> --check [--out <json>]
+  seed.py <copy> --bug <id> --check [--out <json>] [--base <rev>]
                                          is it fixed? the bug's whole test file runs, as HEAD
                                          has it, and a changed test-setup file fails it
                                          (../test_guard.py);
@@ -132,6 +132,9 @@ def main():
     ap.add_argument("--prove", action="store_true")
     ap.add_argument("--check", action="store_true", help="is the bug fixed in the copy?")
     ap.add_argument("--out", help="with --check: also write the result here")
+    ap.add_argument("--base", default="HEAD",
+                    help="with --check: the revision test files are compared with "
+                         "(a run's prepared_head)")
     a = ap.parse_args()
     copy = os.path.abspath(a.copy)
     if not os.path.isdir(copy):
@@ -146,7 +149,7 @@ def main():
         ap.error("--bug is required unless --prove")
     if a.check:
         bug = GROUND["bugs"][a.bug]
-        with committed_test_file(copy, bug["test"], SETUP_FILES) as guard:
+        with committed_test_file(copy, bug["test"], SETUP_FILES, a.base) as guard:
             r = summarize(vitest_report(copy, bug), a.bug)
         r["test_guard"] = guard
         r["fixed"] = r["fixed"] and guard["ok"]

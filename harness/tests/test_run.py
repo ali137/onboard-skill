@@ -201,6 +201,7 @@ def test_prepare_is_folded_and_git_reads_recorded(tmp_path):
     assert open(out / "prepare.log").read() == "seeded bug-1\n"
     rec = json.load(open(out / "run.json"))
     assert rec["prepared"] == ["app.py"]
+    assert rec["prepared_head"] == q("rev-parse", "HEAD").strip()  # what seed.py --check --base takes
     assert rec["metrics"]["git_history_calls"] == ["git log --oneline -- app.py", "git show abc123",
                                                      "git fsck --lost-found"]
     hits = rec["metrics"]["watch_hits"]

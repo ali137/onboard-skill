@@ -24,6 +24,7 @@ Builds <out>/work, a writable copy of --src:
   - git: none, like a source without git (git does not look above <out>); with
     --keep-git, the source's history, with the harness's changes (rewrites,
     plants, --prepare, the skill, --note-from) hidden in it (see keep_history).
+    run.json "prepared_head" is the HEAD the run starts from.
 The run gets a fresh CLAUDE_CONFIG_DIR (<out>/cfg) and only an allowlist of
 the caller's environment. HOME stays real; paths a run names under it are
 recorded. <out>/run-settings.json is
@@ -577,6 +578,9 @@ def main():
                             notes) if a.keep_git else "none"
     note_hash = rewrite_fold_hash(a.note_from, work, notes) if a.keep_git and notes else None
 
+    # the HEAD the run starts from: seed.py --check --base compares test files with it
+    prepared_head = subprocess.run(["git", "-C", work, "rev-parse", "HEAD"], capture_output=True,
+                                   text=True, check=True).stdout.strip() if a.keep_git else None
     os.makedirs(cfg)
     settings = json.load(open(a.base_settings)) if a.base_settings else {}
     settings["claudeMdExcludes"] = ancestor_excludes(work)
@@ -619,7 +623,7 @@ def main():
         "env_keys": sorted(k for k in env if "TOKEN" not in k),
         "paths_rewritten_files": rewritten, "planted": planted,
         "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
-        "note_hash": note_hash,
+        "note_hash": note_hash, "prepared_head": prepared_head,
         "allow": allow, "teams": a.teams, "permission_mode": a.permission_mode,
     }
     if a.setup_only:
