@@ -162,7 +162,7 @@ step ends early only if a new question to you is filed meanwhile (it counts the
 ones already there first):
 
 ```
-n=$(cat team/questions/*.md | grep -c ' · to <your name>'); timeout 60 bash -c "until [ \$(cat team/questions/*.md | grep -c ' · to <your name>') -gt $n ]; do sleep 10; done"
+n=$(cat team/questions/*.md | grep -c ' · to <your name>$'); timeout 60 bash -c "until [ \$(cat team/questions/*.md | grep -c ' · to <your name>$') -gt $n ]; do sleep 10; done"
 ```
 
 A message is read
