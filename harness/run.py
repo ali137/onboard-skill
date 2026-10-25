@@ -347,8 +347,9 @@ GIT_HISTORY = re.compile(r"(?:^|\s)git(?:\s+-[Cc]\s+\S+|\s+--?[\w.-]+(?:=\S+)?)*
 
 GIT_DIFF = re.compile(r"(?:^|\s)git(?:\s+-[Cc]\s+\S+|\s+--?[\w.-]+(?:=\S+)?)*\s+diff\b(.*)")
 # a revision argument: a hash, or a ref with ~ ^ .. or @{ (HEAD~1, a..b, main@{1});
-# a bare branch name or HEAD alone is not counted (HEAD is the copy's own state)
-REVISION = re.compile(r"[0-9a-f]{7,40}|\S*(?:~|\^|\.\.|@\{)\S*")
+# a bare branch name or HEAD alone is not counted (HEAD is the copy's own state), nor
+# is a .. next to a / (a path: ../x.py, src/../x.py)
+REVISION = re.compile(r"[0-9a-f]{7,40}|\S*(?:~|\^|@\{)\S*|\S*(?<!/)\.\.(?!/)\S*")
 
 
 def diffs_history(part):
@@ -577,10 +578,10 @@ def main():
     git_mode = keep_history(work, rewritten, planted + prepared, skill_name, a.arm,
                             notes) if a.keep_git else "none"
     note_hash = rewrite_fold_hash(a.note_from, work, notes) if a.keep_git and notes else None
-
     # the HEAD the run starts from: seed.py --check --base compares test files with it
     prepared_head = subprocess.run(["git", "-C", work, "rev-parse", "HEAD"], capture_output=True,
                                    text=True, check=True).stdout.strip() if a.keep_git else None
+
     os.makedirs(cfg)
     settings = json.load(open(a.base_settings)) if a.base_settings else {}
     settings["claudeMdExcludes"] = ancestor_excludes(work)

@@ -578,3 +578,13 @@ def test_permission_mode_is_explicit_for_an_interactive_session(tmp_path):
             "--prompt", "hi", "--skill", str(skill))
     assert "--permission-mode" not in json.load(open(tmp_path / "args.json"))["argv"]
     assert json.load(open(out / "run.json"))["permission_mode"] is None
+
+
+def test_git_diff_of_a_parent_path_is_not_a_history_read():
+    """A .. next to a / is a path, not a range: `git diff ../x.py` reads the working copy."""
+    rh = harness_module("run").reads_history
+    for cmd in ["git diff ../x.py", "git diff src/../x.py", "git diff ../../a/b.py"]:
+        assert not rh("Bash", {"command": cmd}), cmd
+    for cmd in ["git diff origin/main..HEAD", "git diff ..main", "git diff a...b",
+                "git diff origin/main~1"]:
+        assert rh("Bash", {"command": cmd}), cmd
