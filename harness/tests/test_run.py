@@ -588,3 +588,106 @@ def test_git_diff_of_a_parent_path_is_not_a_history_read():
     for cmd in ["git diff origin/main..HEAD", "git diff ..main", "git diff a...b",
                 "git diff origin/main~1"]:
         assert rh("Bash", {"command": cmd}), cmd
+
+
+DIRTY = r'''import os, subprocess, sys
+work = sys.argv[-1]
+env = dict(os.environ, GIT_AUTHOR_NAME="Pred", GIT_AUTHOR_EMAIL="p@b", GIT_COMMITTER_NAME="Pred",
+           GIT_COMMITTER_EMAIL="p@b")
+g = lambda *x: subprocess.run(["git", "-C", work, *x], check=True, env=env, capture_output=True)
+open(work + "/notes.md", "a").write("first try\n")
+g("stash", "push", "-q", "-m", "first try", "--", "notes.md")
+open(work + "/notes.md", "a").write("second try\n")
+open(work + "/draft.txt", "w").write("untracked draft\n")
+os.remove(work + "/old.md")
+if sys.argv[1] == "commit":
+    g("commit", "-qam", "oops")
+print("dirtied", sys.argv[1])
+'''
+
+
+def test_dirty_stays_uncommitted_after_prepare_is_folded(tmp_path):
+    """--dirty runs after keep_history: --prepare's change is in HEAD, the dirty
+    command's edits, untracked file, deletion and stash stay in flight, and run.json
+    records the state the run starts from."""
+    bin_dir, _, skill, _ = setup(tmp_path)
+    src = tmp_path / "clone"
+    write(str(src / "app.py"), "fixed = True\n")
+    write(str(src / "notes.md"), "notes\n")
+    write(str(src / "old.md"), "retired\n")
+    g = ["git", "-C", str(src), "-c", "user.name=Real Author", "-c", "user.email=a@b"]
+    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
+    subprocess.run(g + ["add", "-A"], check=True)
+    subprocess.run(g + ["commit", "-q", "-m", "first"], check=True)
+    seed = tmp_path / "seed.py"
+    write(str(seed), "import sys\nopen(sys.argv[1] + '/app.py', 'w').write('fixed = False\\n')\n")
+    dirty = tmp_path / "dirty.py"
+    write(str(dirty), DIRTY)
+    out = tmp_path / "runs/dirty"
+    r = run(tmp_path, bin_dir, "--arm", "with", "--src", str(src), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), "--keep-git",
+            "--prepare", f"{sys.executable} -I {seed}", "--dirty", f"{sys.executable} -I {dirty} keep")
+    assert r.returncode == 0, r.stdout + r.stderr
+    w = ["git", "-C", str(out / "work")]
+    q = lambda *x: subprocess.run(w + list(x), capture_output=True, text=True).stdout
+    assert q("show", "HEAD:app.py") == "fixed = False\n"  # prepare folded into HEAD
+    assert q("log", "--format=%s") == "first\n"
+    assert q("status", "--porcelain") == " M notes.md\n D old.md\n?? draft.txt\n"  # the skill is excluded
+    assert q("stash", "list") == "stash@{0}: On main: first try\n"
+    assert open(out / "dirty.log").read() == "dirtied keep\n"
+    rec = json.load(open(out / "run.json"))
+    assert rec["dirty"].endswith("dirty.py keep")
+    assert rec["dirty_state"] == {"head": rec["prepared_head"],
+                                  "status": [" M notes.md", " D old.md", "?? draft.txt"],
+                                  "stash": ["stash@{0}: On main: first try"]}
+    assert rec["prepared"] == ["app.py"]
+
+
+def test_dirty_needs_keep_git_and_must_not_move_head(tmp_path):
+    bin_dir, snap, skill, _ = setup(tmp_path)
+    dirty = tmp_path / "dirty.py"
+    write(str(dirty), DIRTY)
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap), "--out", str(tmp_path / "runs/a"),
+            "--prompt", "hi", "--skill", str(skill), "--dirty", f"{sys.executable} -I {dirty} keep")
+    assert r.returncode != 0 and "--dirty needs --keep-git" in r.stderr
+    src = tmp_path / "clone"
+    write(str(src / "notes.md"), "notes\n")
+    write(str(src / "old.md"), "retired\n")
+    g = ["git", "-C", str(src), "-c", "user.name=A", "-c", "user.email=a@b"]
+    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
+    subprocess.run(g + ["add", "-A"], check=True)
+    subprocess.run(g + ["commit", "-q", "-m", "first"], check=True)
+    out = tmp_path / "runs/b"
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(src), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), "--keep-git",
+            "--dirty", f"{sys.executable} -I {dirty} commit")
+    assert r.returncode != 0 and "--dirty moved HEAD" in r.stderr
+    assert not (out / "stream.jsonl").exists()
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(src), "--out", str(tmp_path / "runs/c"),
+            "--prompt", "hi", "--skill", str(skill), "--keep-git", "--dirty", "false")
+    assert r.returncode != 0 and "--dirty exited 1" in r.stderr
+
+
+def test_run_git_config_is_its_own_and_deny_rules(tmp_path):
+    """The run's git never sees the caller's global or system config; --deny rules land in
+    the run's settings; a --deny-read folder that holds the run folder is refused."""
+    bin_dir, snap, skill, _ = setup(tmp_path)
+    deny = tmp_path / "deny.txt"
+    write(str(deny), "# comment\nBash(git -C /*)\nBash(cd ..*)\n")
+    out = tmp_path / "runs/git"
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap), "--out", str(out),
+            "--prompt", "hi", "--skill", str(skill), "--deny", "Bash(git config --global*)",
+            "--deny", f"@{deny}")
+    assert r.returncode == 0, r.stdout + r.stderr
+    rules = json.load(open(out / "run-settings.json"))["permissions"]["deny"]
+    assert rules[-3:] == ["Bash(git config --global*)", "Bash(git -C /*)", "Bash(cd ..*)"]
+    rec = json.load(open(out / "run.json"))
+    assert "GIT_CONFIG_GLOBAL" in rec["env_keys"] and "GIT_CONFIG_NOSYSTEM" in rec["env_keys"]
+    env = dict(os.environ, GIT_CONFIG_GLOBAL=str(out / "gitconfig"), GIT_CONFIG_NOSYSTEM="1")
+    who = subprocess.run(["git", "config", "--get", "user.email"], env=env, capture_output=True,
+                         text=True, cwd=str(tmp_path)).stdout
+    assert who == "lab@example.invalid\n"
+    r = run(tmp_path, bin_dir, "--arm", "without", "--src", str(snap), "--out", str(tmp_path / "runs/x"),
+            "--prompt", "hi", "--skill", str(skill), "--deny-read", str(tmp_path / "runs"))
+    assert r.returncode != 0 and "holds the run folder" in r.stderr
+    assert not (tmp_path / "runs/x").exists()

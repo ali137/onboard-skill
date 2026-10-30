@@ -3,8 +3,10 @@
 
   run.py --arm with|without --src <snapshot> --out <new run folder> --prompt <text or @file>
          [--skill <skill folder>] [--plant <plant.json>] [--prepare <command>] [--keep-git]
+         [--dirty <command>]
          [--watch <text>]... [--note-from <run copy>] [--allow <rule>]...
-         [--base-settings <settings.json>] [--deny-read <dir>]... [--token-file <file>]
+         [--base-settings <settings.json>] [--deny-read <dir>]... [--deny <rule>]...
+         [--token-file <file>]
          [--teams] [--setup-only] [--permission-mode <mode>]
 
 Builds <out>/work, a writable copy of --src:
@@ -15,6 +17,11 @@ Builds <out>/work, a writable copy of --src:
   - --prepare runs a command on the copy (its path added as the last argument),
     for example to seed a bug; its output goes to <out>/prepare.log;
   - the "with" arm gets the skill in .claude/skills/<name>/;
+  - --dirty (needs --keep-git) runs a command on the copy after everything
+    above, its path added as the last argument, to leave a predecessor's work in
+    flight: what it changes stays uncommitted (tracked edits, untracked files,
+    deletions, stashes); it must not move HEAD. Output in <out>/dirty.log;
+    run.json "dirty_state" records `git status --porcelain` and `git stash list`;
   - --note-from copies the notes an earlier run copy added to team/experience/
     (files this copy does not have; the ground's own notes stay as they are)
     and appends its new INDEX.md lines, with that copy's path rewritten to this
@@ -25,13 +32,16 @@ Builds <out>/work, a writable copy of --src:
     --keep-git, the source's history, with the harness's changes (rewrites,
     plants, --prepare, the skill, --note-from) hidden in it (see keep_history).
     run.json "prepared_head" is the HEAD the run starts from.
-The run gets a fresh CLAUDE_CONFIG_DIR (<out>/cfg) and only an allowlist of
+The run gets a fresh CLAUDE_CONFIG_DIR (<out>/cfg), its own git config
+(GIT_CONFIG_GLOBAL=<out>/gitconfig with a fixed lab identity, GIT_CONFIG_NOSYSTEM=1, so
+the caller's git identity and settings never reach the run), and only an allowlist of
 the caller's environment. HOME stays real; paths a run names under it are
 recorded. <out>/run-settings.json is
 --base-settings (deny rules, guard hooks; a Write(...) or NotebookEdit(...) deny
 rule with an Edit(...) twin is dropped, since it never matches), denials for each
 --deny-read folder (Read, which covers Glob, Grep, and Bash commands naming it,
-plus any Bash "../"), and
+plus any Bash "../"; a --deny-read folder that holds the run folder is refused, since
+it would deny the run its own copy), each --deny rule, and
 claudeMdExcludes for every ancestor memory file, so only the copy's own
 CLAUDE.md loads, plus each --allow rule (e.g. "Bash(git log:*)") in
 permissions.allow: without one, a headless run is denied every tool that asks. A run's own parent folders cannot be denied (the copy lives
@@ -71,6 +81,7 @@ from collections import Counter
 
 HARNESS = os.path.dirname(os.path.abspath(__file__))
 SKIP_REWRITE = {".git", "node_modules"}
+GITCONFIG = "[user]\n\tname = Lab Runner\n\temail = lab@example.invalid\n"  # the run's git identity
 sys.path.insert(0, HARNESS)  # python3 -I leaves the script's folder off the path
 from isolation import KEEP, base_env  # noqa: E402
 
@@ -148,6 +159,25 @@ def prepare(work, command, out):
     if both:
         sys.exit(f"run: --prepare changed files the source already had uncommitted: {both}")
     return sorted(n for n in after if n not in before)
+
+
+def make_dirty(work, command, out):
+    """Run the --dirty command on the copy after keep_history, so nothing it leaves is
+    folded into HEAD. Fails if it exits non-zero or moves HEAD (work in flight is
+    uncommitted by definition). Returns the state the run starts from."""
+    def q(*x):
+        return subprocess.run(["git", "-C", work, *x], capture_output=True, text=True,
+                              check=True).stdout
+    head = q("rev-parse", "HEAD").strip()
+    with open(f"{out}/dirty.log", "w") as log:
+        r = subprocess.run(shlex.split(command) + [work], stdout=log, stderr=subprocess.STDOUT)
+    if r.returncode:
+        sys.exit(f"run: --dirty exited {r.returncode}; see {out}/dirty.log")
+    if q("rev-parse", "HEAD").strip() != head:
+        sys.exit("run: --dirty moved HEAD; work in flight must stay uncommitted")
+    return {"head": head,
+            "status": q("status", "--porcelain", "--untracked-files=all").splitlines(),
+            "stash": q("stash", "list").splitlines()}
 
 
 NOTES = "team/experience"
@@ -524,6 +554,8 @@ def main():
     ap.add_argument("--watch", action="append", default=[], metavar="TEXT",
                     help="record tool calls whose input or result contains TEXT (e.g. a fix's hash)")
     ap.add_argument("--keep-git", action="store_true", help="keep the source's git history")
+    ap.add_argument("--dirty", help="a command run on the copy last, its path added last; "
+                                    "its changes stay uncommitted (needs --keep-git)")
     ap.add_argument("--note-from", metavar="COPY",
                     help="an earlier run's copy (<run>/work) whose team/experience/ is copied in")
     ap.add_argument("--allow", action="append", default=[], metavar="RULE",
@@ -532,6 +564,9 @@ def main():
     ap.add_argument("--base-settings", help="settings JSON the run starts from (deny rules, guard)")
     ap.add_argument("--deny-read", action="append", default=[], metavar="DIR",
                     help="folder the run may not Read/Grep/Glob (repeatable; e.g. the answer keys)")
+    ap.add_argument("--deny", action="append", default=[], metavar="RULE",
+                    help='permission rule the run may never use, e.g. "Bash(git -C /*)" '
+                         "(repeatable; @file reads one rule per line)")
     ap.add_argument("--token-file", default=os.environ.get("ONBOARD_TOKEN_FILE"),
                     help="file holding a `claude setup-token` token (or $ONBOARD_TOKEN_FILE)")
     ap.add_argument("--teams", action="store_true",
@@ -549,12 +584,17 @@ def main():
         sys.exit("run: --setup-only needs --token-file (launch.sh reads the token from it)")
     if a.setup_only and not a.permission_mode:
         a.permission_mode = "auto"
+    if a.dirty and not a.keep_git:
+        sys.exit("run: --dirty needs --keep-git (work in flight is a git state)")
 
     src, out = os.path.realpath(a.src), os.path.realpath(a.out)
     if os.path.lexists(out):
         sys.exit(f"run: {out} exists; each run gets a fresh folder")
     if src in out:  # also catches --out inside --src
         sys.exit("run: --out must be outside --src and must not contain its path")
+    for d in map(os.path.realpath, a.deny_read):
+        if (out + "/").startswith(d + "/"):
+            sys.exit(f"run: --deny-read {d} holds the run folder; the run could not read its own copy")
     work, cfg = f"{out}/work", f"{out}/cfg"
     skill_name = os.path.basename(os.path.realpath(a.skill))
 
@@ -581,6 +621,7 @@ def main():
     # the HEAD the run starts from: seed.py --check --base compares test files with it
     prepared_head = subprocess.run(["git", "-C", work, "rev-parse", "HEAD"], capture_output=True,
                                    text=True, check=True).stdout.strip() if a.keep_git else None
+    dirty_state = make_dirty(work, a.dirty, out) if a.dirty else None
 
     os.makedirs(cfg)
     settings = json.load(open(a.base_settings)) if a.base_settings else {}
@@ -592,9 +633,12 @@ def main():
         deny += [f"Read(/{d}/**)", f"Grep(/{d}/**)", f"Bash(*{d}*)"]  # Read covers Glob
     if a.deny_read:  # relative escapes from the copy, e.g. cat ../../keys/x
         deny.append("Bash(*../*)")
-    allow = [r for x in a.allow for r in (
-        [l.strip() for l in open(x[1:]) if l.strip() and not l.startswith("#")]
-        if x.startswith("@") else [x])]
+    def rules(xs):
+        return [r for x in xs for r in (
+            [l.strip() for l in open(x[1:]) if l.strip() and not l.startswith("#")]
+            if x.startswith("@") else [x])]
+    allow = rules(a.allow)
+    deny += rules(a.deny)
     if allow:
         settings["permissions"].setdefault("allow", []).extend(allow)
     if a.teams:
@@ -608,7 +652,9 @@ def main():
     # real home's .claude/ as an ancestor project folder and loads its skills.
     # npm_config_cache: a caller can keep npm (npx) out of ~/.npm
     env = base_env(a.token_file, keep=("HOME", "npm_config_cache"))
+    open(f"{out}/gitconfig", "w").write(GITCONFIG)
     env.update(CLAUDE_CONFIG_DIR=cfg, CLAUDE_CODE_DISABLE_AUTO_MEMORY="1",
+               GIT_CONFIG_GLOBAL=f"{out}/gitconfig", GIT_CONFIG_NOSYSTEM="1",
                ENABLE_CLAUDEAI_MCP_SERVERS="false", GIT_CEILING_DIRECTORIES=out)
     isolated = ["--settings", f"{out}/run-settings.json",
                 "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
@@ -625,6 +671,7 @@ def main():
         "paths_rewritten_files": rewritten, "planted": planted,
         "prepare": a.prepare, "prepared": prepared, "note_from": a.note_from, "notes": notes,
         "note_hash": note_hash, "prepared_head": prepared_head,
+        "dirty": a.dirty, "dirty_state": dirty_state,
         "allow": allow, "teams": a.teams, "permission_mode": a.permission_mode,
     }
     if a.setup_only:
