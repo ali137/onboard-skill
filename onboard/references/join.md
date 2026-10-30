@@ -10,7 +10,8 @@ only reads or runs read-only commands, except the documented quick check (step 5
   names a lead or other members) with no name or role given: ask the lead who
   you are and **stop** (a stop case, see step 6).
 - Otherwise you are a solo session. With no name, your role is "phase
-  session" for the active phase in `PHASES.md`, or "newcomer, task unknown"
+  session" for the active phase (step 2.5: the one you trust as unfinished,
+  if that differs from the row), or "newcomer, task unknown"
   if there is no `PHASES.md`. You report to the user.
 
 ## 2. Read, in this order
@@ -26,8 +27,13 @@ Skip any file that does not exist and remember that it was missing.
    you need them to name the settled decisions (the briefing's Settled line).
 4. **Vocabulary:** the Terms table in `ARCHITECTURE-ESSENTIALS.md`. Use those
    words in your briefing.
-5. **State:** `PHASES.md`, then the active phase's prompt (the file it names).
-   That prompt gives your next task and its "done when". No `PHASES.md` (or no
+5. **State:** `PHASES.md`, then the active phase's prompt (the file it names),
+   in full, and the newest section of its log or notes file, if it has one.
+   That prompt gives your next task and its "done when". If step 3 makes you trust a status other
+   than the row's, the phase you trust as unfinished is the active one for
+   every step: read its prompt and the newest section of its log the same way,
+   and take its open done-when items as Next. If you trust it as finished,
+   the next phase in `PHASES.md` is the active one. No `PHASES.md` (or no
    plan like it): read the current focus from recent history instead:
    `git log --oneline -20` (or `git log -20 --format='%h %cs %s'`), and the
    newest section of a changelog, roadmap or TODO file if the project has one.
@@ -71,7 +77,10 @@ and lists every one that fails. At minimum the list holds:
   phase whose items are all checked;
 - files and folders the notes describe as existing (or as not existing yet)
   really are that way;
-- each documented command resolves to what it calls: the script it runs is
+- each documented command, its name taken verbatim, one claim per distinct
+  name (`build:prod` and `build` are two claims; for example
+  `grep -ohE 'npm run [[:alnum:]:_-]+' CLAUDE.md AGENTS.md | sort -u`),
+  resolves to what it calls: the script it runs is
   defined where the tool looks for it (`npm run <name>`: `package.json`
   "scripts"; `make <target>`: the Makefile), and the files and test files it
   names exist;
@@ -90,7 +99,10 @@ and lists every one that fails. At minimum the list holds:
   `git log -1 --format=%cs -- <files>` is not later than the note's date,
   and mark it "unverified (uncommitted)" in the briefing's Notes.
 
-Each claim that fails a check is **drift**. Write down the claim, the file it is in, what you
+Write the claim list out, names verbatim, before the first check (in your
+reasoning, never a file or the reply: join writes nothing); the Drift line's
+count is the length of that list, never an estimate. Each claim that fails a
+check is **drift**. Write down the claim, the file it is in, what you
 checked, what you found, and the command that shows it. Keep going. Never fix it.
 
 ## 4. Conflicting rules
@@ -177,6 +189,8 @@ line. Point to paths instead of copying text.
   client or purpose), from its own files. Before naming a phase, compare its
   status cell in `PHASES.md` with its prompt and done-when list (step 3); a
   mismatch is drift, and this line says which status you are trusting.
+  "Last finished step:" is the latest logged step (the phase's notes or log),
+  not the last phase marked done.
 - **Drift:** its label counts the claims step 3 checked and the drift found;
   every drift is an item below it: the claim, its file, what you checked, what you found,
   and a command that reproduces it. The "ok" claims are only counted; list them
@@ -189,23 +203,26 @@ line. Point to paths instead of copying text.
   fewer are recorded), those bearing on your task first, by content: what each
   decides, in a few words, with its file and ID. One marked overturned or
   replaced is not in force. None recorded: "none recorded".
-- **Next:** your task and its "done when" (no task recorded: say so and ask in
+- **Next:** your task and its "done when", not a plan (a plan the session
+  prompt asks for goes in First reply; no task recorded: say so and ask in
   the Questions line); then "Rule conflicts:" (step 4) and "Notes:" (the
   matching experience notes, step 2.6, with why each matches), each with a
   forced "none" and never dropped for length.
-- **Limits:** "decide alone" comes from the rules, your role card or the
-  session prompt. Most projects have no decide-alone list: then name what their
-  rules leave to you, how to do the work inside the conventions they set (the
+- **Limits:** "decide alone" comes from the rules, your role card, the
+  session prompt or the active phase's prompt; a decide-alone section in
+  either prompt, if one exists, is quoted first. Most projects have no
+  decide-alone list: then name what their rules leave to you, how to do the work inside the conventions they set (the
   approach, the code, the tests), and cite those rules. Write "nothing recorded"
   only when the files set no rules at all. Then what you must ask about first,
   and what you must never touch.
 - **Check:** the quick check (step 5) and its result, or why it gave none
   ("none documented", "unverifiable", "not run", "could not run").
   Label it "Check", not "Quick check".
+- **Questions for the lead:** label it so even when you name the lead.
 
 ```
 ## Briefing: <name or role>, reports to <lead>. <"Solo session" | Team: name (role), ...>. <cooperation on only: live <name (domains, status)>, my domains <...>, overlap <...> or "none">
-**Where things stand:** Project: <what it is>. Phase: <n, name> (<file>; trusting status <...>), or current focus: <...> (from <git log / changelog>). Last finished: <...>.
+**Where things stand:** Project: <what it is>. Phase: <n, name> (<file>; trusting status <...>), or current focus: <...> (from <git log / changelog>). Last finished step: <...>.
 **Drift (<N> claims checked, <K> drift):** none, or one item per drift:
 - <claim> (<file>): checked <what>, found <what>; reproduce: `<command>`
 **In flight, not mine:** <grouped> or "clean"
