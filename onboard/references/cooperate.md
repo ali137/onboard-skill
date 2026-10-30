@@ -3,8 +3,8 @@
 Follow these while other live sessions work on the same project: in join mode
 from "go" until you sign off; in record mode for that run. Brief mode only
 reads `team/SESSIONS.md` for the starting prompt and writes nothing. A **live
-session** is a Claude Code session working on the project now, together with
-its own subagents. Templates for every entry are in `templates/`
+session** is one that passes both tests in rule 1, together with its own
+subagents. Templates for every entry are in `templates/`
 (`SESSIONS.md`, `DOMAINS.md`, `question.md`).
 
 **How to write (every rule below).** Append one whole entry in one call, and
@@ -22,8 +22,8 @@ echo "Q-bakery-pricing-$id"
 
 The quoted `'EOF'` keeps the entry's text exactly as written; `sed` puts in
 the real local time. Never type a time yourself. Keep an entry short (under
-about 2 KB: a longer append can interleave with another session's). Before the
-first question write, always `mkdir -p team/questions`. Only `team/SESSIONS.md` has
+about 2 KB: a longer append can interleave with another session's). Before your
+first write under these rules, always `mkdir -p team/questions` (this also creates `team/`). Only `team/SESSIONS.md` has
 header lines (its template's first four lines). If it does not exist yet, write
 them first, in a write that fails if another session created the file a moment
 earlier (then the header is already there: just append):
@@ -37,7 +37,8 @@ Write nothing else under these rules.
 
 ## 1. Who is live (checked during join; join itself writes nothing)
 
-Read `team/SESSIONS.md`. A session counts as **working** when its latest
+Two tests: the file says a session is working (**working**), and it is
+running (**live**). Read `team/SESSIONS.md`. A session counts as **working** when its latest
 sign-in or status entry says anything but `done` (working, waiting, busy until
 <time>) and no later notice names it unreachable. A working session is **live**
 when `ListAgents` lists it.
@@ -75,7 +76,8 @@ Search older entries by keyword (`grep -n`) only when your task needs them.
 ## 4. Your name and sign-in (first act after "go")
 
 Your name is what `ListAgents` shows as "This session is <name>". It should be
-`<project>-<role>`. A session cannot rename itself: if yours is a default,
+`<project>-<role>`, so other sessions can tell whom to message and what it owns.
+A session cannot rename itself: if yours is a default,
 generated label, ask the lead in the briefing's Questions line to type
 `/rename <project>-<role>`.
 
@@ -204,8 +206,11 @@ tick the boxes.
 
 In an agent team, the team's lead session follows these rules for the whole
 team and signs in once. Teammates keep their mailbox and task list, skip
-sign-in (rule 4), overlap (rule 5), waiting (rule 10) and sign-off (rule 12),
-which the lead covers, and send their questions through the lead.
+sign-in (rule 4), overlap (rule 5), waiting (rule 10), status (rule 11) and
+sign-off (rule 12), which the lead covers, and send their questions through
+the lead: the entry is addressed to the owning session as rule 6 says, but the
+ping goes to the lead, never to another session; the lead pings the owner and
+passes the answer back, as rule 6 does for a subagent.
 
 ## Limits
 

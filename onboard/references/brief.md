@@ -1,7 +1,7 @@
 # Brief mode
 
 The lead prints a newcomer's starting prompt. **Writes nothing:** the prompt,
-and any draft role card, are printed in the reply for the lead to use.
+and any draft role card and roster row, are printed in the reply for the lead to use.
 
 ## Steps
 
@@ -12,9 +12,11 @@ and any draft role card, are printed in the reply for the lead to use.
    Read `team/experience/INDEX.md` and open only the notes whose line matches
    the task. Do not run the quick check; the newcomer does that.
 3. **No role card for that role:** ask the lead for the missing fields
-   (`templates/role-card.md`), without suggesting answers. When the lead
+   (`templates/role-card.md`) and the roster row's "how to reach"
+   (`templates/ROSTER.md`), without suggesting answers. When the lead
    answers, print a draft role card filled only with those answers, for the
-   lead to save as `team/<name>.md`.
+   lead to save as `team/<name>.md`, and a draft `team/ROSTER.md` row
+   (`templates/ROSTER.md`; with its header lines when that file is missing).
    Never invent a field; an unanswered field stays "[ask the lead]".
 4. **Print the starting prompt** below, filled only from the project's files
    and the lead's words. Anything else, such as a "done when" the lead did not
@@ -53,5 +55,10 @@ When the lead says the newcomer may start without waiting, the last line is
 "Run onboard first. You have go: brief, then start." instead.
 
 When other live sessions work on the project, add one line after the prompt,
-addressed to the lead: "Start this session as `claude --name <project>-<role>`
-(a session cannot rename itself)."
+addressed to the lead: "Start the new session with `claude --name
+<project>-<role>`, so other sessions can message it by name; a running session
+cannot rename itself, only you can, with `/rename`."
+
+When the project's `CLAUDE.md` does not already say it, add one line after the
+prompt, addressed to the lead: "Add to CLAUDE.md: Run onboard when taking over
+a phase or joining a team."
