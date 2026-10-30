@@ -51,8 +51,8 @@ those notices are all you write; nothing below applies.
 ## 2. Your domains
 
 `team/DOMAINS.md` is the domain list. Your own domains come from your starting
-prompt, else your role card's "Domains"; with neither, ask the lead in briefing
-section 12. Every entry you write carries one domain.
+prompt, else your role card's "Domains"; with neither, ask the lead in the
+briefing's Questions line. Every entry you write carries one domain.
 
 No `team/DOMAINS.md`: never write it. After the briefing (before "Waiting for
 go."), print a draft list, one row per domain from the project's folders and
@@ -75,15 +75,15 @@ Search older entries by keyword (`grep -n`) only when your task needs them.
 
 Your name is what `ListAgents` shows as "This session is <name>". It should be
 `<project>-<role>`. A session cannot rename itself: if yours is a default,
-generated label, ask the lead in briefing section 12 to type
+generated label, ask the lead in the briefing's Questions line to type
 `/rename <project>-<role>`.
 
 After "go", append a sign-in entry to `team/SESSIONS.md` (template).
 
 ## 5. Overlap
 
-If a working session already owns a domain your task needs, say so in briefing
-section 2. After signing in, post a notice and tell that owning session:
+If a working session already owns a domain your task needs, say so in the
+briefing's heading. After signing in, post a notice and tell that owning session:
 "My task <task> overlaps your domain <domain>." Then:
 - **Your task is fully inside its domain:** append what you already found to
   `team/research/<domain>.md`, hand the task over as a question to it, and sign

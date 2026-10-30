@@ -8,7 +8,8 @@ TITLES = fc.BRIEFING
 
 
 GOOD = {"Where things stand": "Project: a CLI. Phase: 2.",
-        "My limits": "May decide alone: layout. Must ask: scope. Never touch: x."}
+        "Limits": "decide alone: layout; ask the user before: scope; never touch: x."}
+HEAD = "## Briefing: phase session, reports to the user. Solo session.\n\n"
 
 
 def briefing(style="{n}. **{t}:** {body}", bodies=None, extra="", order=None):
@@ -16,24 +17,24 @@ def briefing(style="{n}. **{t}:** {body}", bodies=None, extra="", order=None):
     bodies = dict(GOOD, **(bodies or {}))
     rows = [style.format(n=i + 1, t=TITLES[i], body=bodies.get(TITLES[i], "something"))
             for i in order]
-    return "## Briefing\n\n" + "\n".join(rows) + "\n" + extra + "\nWaiting for go.\n"
+    return HEAD + "\n".join(rows) + "\n" + extra + "\nWaiting for go.\n"
 
 
 def test_good_styles():
     for style in ["{n}. **{t}:** {body}", "**{n}. {t}:** {body}", "### {n}. {t}\n{body}",
-                  "## {t}\n{body}", "**{t}:** {body}"]:
+                  "## {t}\n{body}", "**{t}:** {body}", "{t}: {body}", "**{t} (a note):** {body}"]:
         r = fc.check_briefing(briefing(style))
         assert r["ok"], (style, r)
 
 
 def test_section_named_only_in_a_bullet_is_missing():
-    text = briefing().replace("2. **Team:** something", "- Team folder absent.")
+    text = briefing().replace("2. **Drift:** something", "- Drift none.")
     r = fc.check_briefing(text)
-    assert r["missing_sections"] == ["Team"] and not r["ok"]
+    assert r["missing_sections"] == ["Drift"] and not r["ok"]
 
 
 def test_empty_out_of_order_and_too_long():
-    assert fc.check_briefing(briefing(bodies={"Drift found": ""}))["empty_sections"] == ["Drift found"]
+    assert fc.check_briefing(briefing(bodies={"Drift": ""}))["empty_sections"] == ["Drift"]
     swapped = list(range(len(TITLES)))
     swapped[0], swapped[-1] = swapped[-1], 0
     assert fc.check_briefing(briefing(order=swapped))["out_of_order"]
@@ -45,14 +46,17 @@ def test_empty_out_of_order_and_too_long():
 def test_plan_after_the_briefing_is_not_counted():
     text = briefing(extra="\n**First reply**\n" + "\n".join(f"- plan {i}" for i in range(30)))
     r = fc.check_briefing(text)
-    assert r["ok"] and r["briefing_lines"] == 12
+    assert r["ok"] and r["briefing_lines"] == 8
 
 
 def test_required_clauses():
     r = fc.check_briefing(briefing(bodies={"Where things stand": "Phase 2 is active.",
-                                           "My limits": "Never touch x; ask before y."}))
-    assert r["missing_clauses"] == ["Where things stand: project", "My limits: decide alone"]
+                                           "Limits": "Never touch x; ask before y."}))
+    assert r["missing_clauses"] == ["Where things stand: project", "Limits: decide alone"]
     assert not r["ok"]
+    # the heading must say who the newcomer reports to
+    r = fc.check_briefing(briefing().replace(", reports to the user", ""))
+    assert r["missing_clauses"] == ["heading: reports to"] and not r["ok"]
     # a clause on the section's next lines counts
     r = fc.check_briefing(briefing("### {n}. {t}\n{body}"))
     assert r["ok"] and not r["missing_clauses"], r
@@ -68,17 +72,19 @@ def test_note_and_role_card():
     assert fc.check_role_card(card.replace("## Goal\nfilled", "## Goal\n<goal>"))["empty_fields"] == ["Goal"]
 
 
-def test_the_phase_13_briefing():
-    """The 12 sections of the briefing (settled decisions; every claim checked), in
-    the skill's own example form; the old 10-section form now misses those two; a go given
-    in the starting prompt ends the briefing instead of "Waiting for go."."""
+def test_the_compact_briefing():
+    """The compact briefing (phase 18) in the skill's own example form passes; phase 13's
+    12-section form fails it (format_check_v1.py reads that one); a go given in the
+    starting prompt ends the briefing instead of "Waiting for go."."""
     text = open(os.path.join(os.path.dirname(fc.__file__), "..", "onboard/references/join.md")).read()
     example = text.split("```\n## Briefing")[1].split("```")[0]
-    assert fc.check_briefing("## Briefing" + example)["ok"]
-    old = "\n".join(l for l in example.splitlines()
-                    if not l.startswith(("4. **Settled", "5. **Claims")))
-    r = fc.check_briefing("## Briefing" + old)
-    assert r["missing_sections"] == ["Settled decisions", "Claims checked"] and not r["ok"]
+    r = fc.check_briefing("## Briefing" + example)
+    assert r["ok"] and r["sections_found"] == 8, r
+    old = HEAD + "\n".join(f"{i + 1}. **{t}:** x" for i, t in enumerate(
+        ["Who I am", "Team", "Where things stand", "Settled decisions", "Claims checked",
+         "Drift found", "Rule conflicts", "Matching experience notes", "My next task",
+         "My limits", "Quick check", "Questions for the lead"])) + "\nWaiting for go.\n"
+    assert not fc.check_briefing(old)["ok"]
     started = briefing().replace("Waiting for go.", "Go given in the starting prompt; starting.")
     r = fc.check_briefing(started + "\nNow fixing bakery/inventory.py.\n")
     assert r["ok"] and r["waiting_for_go"]
@@ -91,9 +97,21 @@ def test_end_line_inside_a_section_does_not_end_the_briefing():
     quoting = briefing(bodies={"Where things stand": "Project: a CLI. The lead's prompt says go "
                                                      "given in the starting prompt counts."})
     r = fc.check_briefing(quoting)
-    assert r["ok"] and r["sections_found"] == 12 and r["briefing_lines"] == 12, r
+    assert r["ok"] and r["sections_found"] == 8 and r["briefing_lines"] == 8, r
     r = fc.check_briefing(quoting.replace("Waiting for go.", ""))
     assert not r["waiting_for_go"] and not r["ok"]
-    inside = briefing("### {n}. {t}\n{body}", bodies={"Settled decisions": "none\nWaiting for go."})
+    inside = briefing("### {n}. {t}\n{body}", bodies={"Settled": "none\nWaiting for go."})
     r = fc.check_briefing(inside.removesuffix("\nWaiting for go.\n"))
-    assert r["sections_found"] == 12 and not r["waiting_for_go"] and not r["ok"], r
+    assert r["sections_found"] == 8 and not r["waiting_for_go"] and not r["ok"], r
+
+
+def test_label_variants_and_collisions():
+    """"Quick check" stands for Check; "reports to" may sit on the line under the heading;
+    a numbered item that only starts with a label word is not a briefing line."""
+    r = fc.check_briefing(briefing().replace("**Check:**", "**Quick check:**"))
+    assert r["ok"], r
+    r = fc.check_briefing(briefing().replace(", reports to the user. Solo session.",
+                                             "\nReports to the user. Solo session."))
+    assert r["ok"], r
+    r = fc.check_briefing(briefing(bodies={"Drift": "1 drift\n1. Check command `make test` fails"}))
+    assert r["ok"] and r["sections_found"] == 8, r

@@ -2,10 +2,12 @@
 """Check a newcomer's output against the skill's formats. A script, not a model:
 the output itself is never constrained, only checked afterwards.
 
-  format_check.py briefing <file or run folder>   the 12 briefing sections, their required
+  format_check.py briefing <file or run folder>   the compact briefing (phase 18): its heading
+                                                  ("reports to"), its 8 lines, their required
                                                   clauses, length, and its last line: "Waiting
                                                   for go.", or with go in the starting prompt
                                                   "Go given in the starting prompt; starting."
+                                                  Phase 13's 12-section form: format_check_v1.py.
   format_check.py note <file>...                  the 9 experience-note fields
   format_check.py role-card <file>...             the 9 role-card headings
 
@@ -17,25 +19,31 @@ import os
 import re
 import sys
 
-BRIEFING = ["Who I am", "Team", "Where things stand", "Settled decisions", "Claims checked",
-            "Drift found", "Rule conflicts", "Matching experience notes", "My next task",
-            "My limits", "Quick check", "Questions for the lead"]
+BRIEFING = ["Where things stand", "Drift", "In flight", "Settled", "Next", "Limits", "Check",
+            "Questions for the lead"]
 NOTE = ["date", "commit", "files", "symptom", "cause", "fix", "verified by",
         "applies when", "does not apply when"]
 ROLE_CARD = ["Name", "Role", "Goal", "Owns", "Does not own", "May decide alone",
              "Must ask the lead", "Reports to", "Route to me when"]
 MAX_BRIEFING_LINES = 45  # the skill says at most 40; a few lines of slack
-# words a section's body must hold: what the project is; what the newcomer may decide alone
-CLAUSES = {"Where things stand": ["project"], "My limits": ["decide alone"]}
+# words a line's body must hold: what the project is; what the newcomer may decide alone
+CLAUSES = {"Where things stand": ["project"], "Limits": ["decide alone"]}
+HEADING = re.compile(r"^\s*#{1,6}\s+(?:\*\*|__)?\s*Briefing\b", re.IGNORECASE)
+
+
+# a label a model may write instead of the skill's own
+ALIASES = {"Check": r"(?:quick\s+)?check"}
 
 
 def section_re(title):
-    """A section line: a heading or a numbered item (bold or not) that opens with the
-    title, or a line that opens with the bold title. Never a bullet inside a section.
-    Matches "4. **Drift found:** ...", "**4. Drift found:**", "### 4. Drift found",
-    "## Drift found", "**Drift found:** ..."; not "- Drift found ..."."""
-    return re.compile(r"^\s*(?:#{1,6}\s+(?:\*\*|__)?\s*(?:\d+[.)]\s*)?|(?:\*\*|__)?\d+[.)]\s*|(?=\*\*|__))"
-                      r"(?:\*\*|__)?\s*" + re.escape(title) + r"\b", re.IGNORECASE)
+    """A briefing line: a heading that opens with the label ("### Drift", "## 4. Check"),
+    or a line that opens with the label, bold or not, numbered or not, and reaches a ":"
+    within 40 characters ("**Drift (5 claims checked, 1 drift):** none", "Next: ...",
+    "3. **Settled, do not reopen:**"). Never a bullet ("- Drift ...")."""
+    t = ALIASES.get(title, re.escape(title))
+    b = r"(?:\*\*|__)?\s*"
+    return re.compile(r"^\s*(?:#{1,6}\s+" + b + r"(?:\d+[.)]\s*)?" + b + t + r"\b"
+                      r"|" + b + r"(?:\d+[.)]\s*)?" + b + t + r"\b[^:\n]{0,40}:)", re.IGNORECASE)
 
 
 def is_placeholder(value):
@@ -72,6 +80,10 @@ def check_briefing(text):
             if not body.strip(" *_:.-"):
                 empty.append(t)
             clauses += [f"{t}: {w}" for w in CLAUSES.get(t, []) if w not in body.lower()]
+        # the heading (and any line under it) says who the newcomer reports to
+        h = next((i for i in range(first) if HEADING.match(lines[i])), None)
+        if h is None or not re.search(r"report(s|ing) to", " ".join(lines[h:first]), re.IGNORECASE):
+            clauses.append("heading: reports to")
     ok = (not missing and not out_of_order and not empty and not clauses and bool(end)
           and 0 < n_lines <= MAX_BRIEFING_LINES)
     return {"kind": "briefing", "sections_found": len(present), "missing_sections": missing,
