@@ -26,7 +26,7 @@ and any draft role card, are printed in the reply for the lead to use.
 ```
 You are <name>, the <role> on <project>. You report to <lead>.
 
-Team: <name (role), ...> or "solo".
+Team: <name (role), ...> or "solo session".
 
 Read first, in order: <paths, as in join mode step 2, that exist>.
 

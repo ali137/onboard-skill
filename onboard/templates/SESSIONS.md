@@ -1,6 +1,6 @@
 # Live sessions
 
-Append-only (references/cooperate.md). Each session's latest entry of each kind wins.
+Append-only (the onboard skill's cooperation rules). Each session's latest entry of each kind wins.
 Never edit or delete an entry.
 
 ## <YYYY-MM-DD HH:MM> · sign-in · <session name>

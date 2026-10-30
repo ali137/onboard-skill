@@ -1,7 +1,7 @@
 ---
 name: onboard
 description: Onboard a newcomer (a new session, an agent-team teammate, or another model) into ongoing project or team work. Join mode (default) reads the project's files in a fixed order, checks their claims against disk and git, replies with a 12-section briefing, and waits for "go" (or starts, when the starting prompt already gave go). Brief mode ("brief <role> <task>") prints a newcomer's starting prompt. Record mode ("record") writes one experience note after a verified, non-obvious fix; run it yourself whenever you have one. Use on arrival in work already under way, when a starting prompt says "run onboard first", after a verified non-obvious fix, before delegating work, or when other live sessions work on the same project (cooperation rules: shared sessions, questions and research files).
-argument-hint: "[brief <role> <task> | record]"
+argument-hint: "[join | brief <role> <task> | record]"
 ---
 
 # onboard
@@ -22,7 +22,9 @@ Arguments: `$ARGUMENTS` (if this shows literally, take them from the request).
 
 Started on your own: join mode on arriving in ongoing work; record mode
 after you verify a fix to a problem that was not obvious (no approval needed).
-Paths are relative to this skill's folder; templates are in `templates/`.
+`references/` and `templates/` paths are relative to this skill's folder;
+every other path (`team/...`, `PHASES.md`, and the rest) is relative to the
+project root. Templates are in `templates/`.
 
 ## Hard rules (every mode)
 

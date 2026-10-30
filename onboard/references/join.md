@@ -173,8 +173,8 @@ only when the files set no rules at all.
 Waiting for go.
 ```
 
-With go given in the starting prompt (step 7), the last line is "Go given in the
-starting prompt; starting." and the work follows.
+With go given in the starting prompt (step 7), the briefing's last line is "Go
+given in the starting prompt; starting." and the work follows in the same turn.
 
 ## When things are missing
 

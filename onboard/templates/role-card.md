@@ -10,7 +10,7 @@
 <what this member is here to achieve>
 
 ## Domains
-<the domains from team/DOMAINS.md this member works in, if the project has one>
+<the domains from team/DOMAINS.md this member works in, if the project has a team/DOMAINS.md>
 
 ## Owns
 <files, areas, or decisions this member is responsible for>
