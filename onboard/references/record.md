@@ -20,15 +20,20 @@ not offer to write the note anyway: nobody can waive this precondition.
 
 1. Create `team/experience/` if it is missing, and `INDEX.md` there from
    `templates/INDEX.md` if that is missing.
-2. Write `team/experience/<YYYY-MM-DD>-<slug>.md` from
-   `templates/experience-note.md`. Fill every field from this session's
-   evidence:
+2. Write `team/experience/<YYYY-MM-DD-HHMM>-<slug>.md` from
+   `templates/experience-note.md` (the time keeps two notes of one day apart).
+   Fill every field from this session's evidence:
    - **commit:** run `git rev-parse --short HEAD` now (do not reuse a hash from
-     memory) if the fix is committed, else "uncommitted";
+     memory) if the fix is committed, else "uncommitted"; beside it, the
+     symbol the fix changed (a function or class name, never a line number);
+   - **replaces:** the path of an older note this one makes wrong, or "none";
+     the older note then counts as retired (notes are never edited);
    - **symptom:** in the words a later agent would search for (the error text, the failing test name);
    - **does not apply when:** the near-miss cases where the note would mislead.
-3. Append one line to `team/experience/INDEX.md`:
-   `- <date> · <symptom keywords> · <files> · <path to note>`
+3. Append one line to `team/experience/INDEX.md` with `>>`, never by
+   rewriting the file: `- <date> · <symptom keywords> · <files> · <path to
+   note>`, plus ` · replaces: <old note>` when it replaces one. The symptom and
+   files are what a later session matches on.
 4. If the note would contradict a recorded decision, the decision stands:
    leave that part out and ask the lead.
 

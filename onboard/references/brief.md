@@ -44,7 +44,7 @@ Matching experience notes (open only these):
 Other live sessions: <name (domains)>. Your domains: <the lead's choice, or the
 role card's "Domains">. Follow the onboard skill's cooperation rules
 (`references/cooperate.md`): read team/SESSIONS.md and your domains' files in
-team/questions/ and team/research/, and sign in to team/SESSIONS.md after go.
+team/questions/, and sign in to team/SESSIONS.md after go.
 
 Run onboard first, then wait for go.
 ```
