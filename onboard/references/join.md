@@ -16,7 +16,11 @@ only reads or runs read-only commands, except the documented quick check (step 5
 
 ## 2. Read, in this order
 
-Skip any file that does not exist and remember that it was missing.
+Skip any file that does not exist and remember that it was missing. If a
+tool cuts its output short ("truncated"), or a read is refused, read that file
+again by itself, with a plain path in a call of its own (a part at a time
+if it is long); never state what a file says,
+or that files agree, unless you saw that part.
 
 1. **Rules:** `CLAUDE.md`, `AGENTS.md` (the project root's, then any nearer to
    where you will work).
@@ -79,11 +83,16 @@ and lists every one that fails. At minimum the list holds:
   really are that way;
 - each documented command, its name taken verbatim, one claim per distinct
   name (`build:prod` and `build` are two claims; for example
-  `grep -ohE 'npm run [[:alnum:]:_-]+' CLAUDE.md AGENTS.md | sort -u`),
+  `grep -ohE 'npm run [[:alnum:]:_-]+' CLAUDE.md AGENTS.md`; repeats are fine),
   resolves to what it calls: the script it runs is
   defined where the tool looks for it (`npm run <name>`: `package.json`
   "scripts"; `make <target>`: the Makefile), and the files and test files it
-  names exist;
+  names exist. Check the names mechanically in one command, one literal grep
+  per name, never by eye; no shell variables, loops or `node -e` (the
+  permission system refuses them):
+  `grep -q '"<name>" *:' package.json || echo "MISSING <name>"; grep -q '"<name2>" *:' package.json || echo "MISSING <name2>"`
+  (a Makefile: `grep -q '^<target>:' Makefile || echo "MISSING <target>"`),
+  against the `package.json` or Makefile of the folder the docs run it from;
 - `git log --oneline -10`, `git status --short --branch` and `git stash list`
   fit the claimed last step (not a git repository: say so); a tracked file
   deleted in the working tree, or uncommitted or recent work that goes
@@ -178,8 +187,8 @@ Fixed lines, in this order, each opening with its label in bold exactly as in
 the example. Aim for 25 lines; never more than 40, counted from the Where things
 stand line through the Questions line (the session prompt's "first reply" and
 the draft domain list that follow do not count). Each line is one short line,
-except that Next and Settled may run to 3 lines each, and drift items and
-questions are never cut to fit (the cap yields to them); drift of one kind may
+except that Next and Settled may run to 3 lines each, and drift items, the
+Checked ok line and questions are never cut to fit (the cap yields to them); drift of one kind may
 share one item ("7 note commits gone: ..."). Write "none" rather than dropping a
 line. Point to paths instead of copying text.
 - **Heading:** who you are (step 1), who you report to, and the team or "solo
@@ -189,12 +198,20 @@ line. Point to paths instead of copying text.
   client or purpose), from its own files. Before naming a phase, compare its
   status cell in `PHASES.md` with its prompt and done-when list (step 3); a
   mismatch is drift, and this line says which status you are trusting.
-  "Last finished step:" is the latest logged step (the phase's notes or log),
-  not the last phase marked done.
+  "Last finished step:" is the latest finished step of the plan: of the
+  items ticked and the steps the phase's notes or log record as done, the
+  latest; a session log's steps are finer than ticks and win. Later work that
+  is no step of the plan (a tidy, a fix outside the plan, a handover) is not
+  it, nor is the last phase marked done; mention it after the step if at
+  all. No plan: the last commit, by subject.
 - **Drift:** its label counts the claims step 3 checked and the drift found;
   every drift is an item below it: the claim, its file, what you checked, what you found,
-  and a command that reproduces it. The "ok" claims are only counted; list them
-  only when the lead asks ("list claims").
+  and a command that reproduces it. Then one line lists every claim that held:
+  "Checked ok: <name>, <name>, ...". Each command, script name and path is
+  listed by its verbatim name; only claims without a name of their own
+  (commits, note files) may be grouped with their number ("6 note commits").
+  The count is the drift items plus the claims on this line, a group counting
+  as its number.
 - **In flight, not mine:** what `git status --short --branch` and `git stash list` show,
   grouped (uncommitted, untracked, deleted tracked files, stashes), and any
   commits ahead of or behind upstream. A clean tree: "clean". None of it is
@@ -225,6 +242,7 @@ line. Point to paths instead of copying text.
 **Where things stand:** Project: <what it is>. Phase: <n, name> (<file>; trusting status <...>), or current focus: <...> (from <git log / changelog>). Last finished step: <...>.
 **Drift (<N> claims checked, <K> drift):** none, or one item per drift:
 - <claim> (<file>): checked <what>, found <what>; reproduce: `<command>`
+- Checked ok: <name>, <name>, ...
 **In flight, not mine:** <grouped> or "clean"
 **Settled, do not reopen:** <what it decides> (<file>, <ID>); ... or "none recorded"
 **Next:** <task> | no task recorded (asked below). Done when: <items>. Rule conflicts: <rule> (<file>) vs <rule> (<file>), following <the stricter> | none. Notes: <path: why it matches> | none.
