@@ -1,0 +1,25 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Git identity for tests that commit
+        run: |
+          git config --global user.name "ci"
+          git config --global user.email "ci@example.invalid"
+      - run: pip install pytest
+      - run: python3 -m pytest -q -p no:cacheprovider harness/tests/

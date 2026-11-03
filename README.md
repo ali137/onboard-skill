@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/ali137/onboard-skill/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/ali137/onboard-skill/actions/workflows/tests.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue?style=flat"></a>
   <a href="CHANGELOG.md"><img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-informational?style=flat"></a>
   <a href="#what-was-measured"><img alt="runs: 15/15 at 8/8" src="https://img.shields.io/badge/runs-15%2F15%20at%208%2F8-brightgreen?style=flat"></a>
