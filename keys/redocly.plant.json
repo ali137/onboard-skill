@@ -1,0 +1,5 @@
+{
+  "file": "AGENTS.md",
+  "find": "npm run unit -- packages/core/src/__tests__/some.test.ts",
+  "replace": "npm run test:unit -- packages/core/src/__tests__/some.test.ts"
+}

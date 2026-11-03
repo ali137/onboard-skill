@@ -9,13 +9,28 @@ It checks the project's claims against disk and git before trusting them, then b
 
 Install: copy [`onboard/`](onboard/) to `~/.claude/skills/onboard/`, or to a project's `.claude/skills/onboard/`.
 
+## What it writes
+
+- Join and brief modes change nothing in the project, apart from what the project's own check writes when
+  join re-runs it before the briefing.
+- From your "go" on, and in record mode, it appends to `team/SESSIONS.md` and `team/questions/` (creating
+  `team/` if needed) and never edits an entry.
+- Record mode writes one note under `team/experience/`. It starts on its own after a verified fix to a problem
+  that was not obvious, without asking first.
+
+## Where it applies
+
+- 2-5 live sessions on one machine, one OS user, one config folder.
+- No bug queue, no merge handling, no swarm of agents.
+- The skill uses the Agent Skills format (`SKILL.md`) and is tested on Claude Code only.
+
 ## What was measured
 
 **A new session that checks the project's records before trusting them: in 15 of 15 test runs,
 onboard's briefing answered all 8 onboarding questions correctly and caught the false claim
 planted in the records.**
 
-Measured with Claude Code 2.1.316 and the skill at commit `968ca0b`. The run records call that commit `2e641cc`,
+Measured with Claude Code 2.1.316 and the skill at commit `8a7f2e2`. The run records call that commit `2e641cc`,
 its hash before this repository's history was rewritten for publishing. The `onboard/` folder is the same in both.
 
 ### 1. Accurate briefings
@@ -50,9 +65,9 @@ These describe the skill's behavior, not a comparison: the pre-registered advant
   Both readers found no lost or hidden work ([`reading-opus-a2.json`](evidence/reading-opus-a2.json),
   [`reading-opus-b2.json`](evidence/reading-opus-b2.json), q3).
 - It ran the project's check before its first source edit in 18 of 18 runs
-  (`check_before_first_source_edit`).
+  (`check_before_first_source_edit`; totals in [`advantage2-mechanical.txt`](evidence/advantage2-mechanical.txt), `check_before_edit`).
 - By the strict automatic measure (full path plus a cue word, in the text shown), it named every
-  piece of someone else's in-flight work in 16 of 18 runs (`all_named_shown`).
+  piece of someone else's in-flight work in 16 of 18 runs (`all_named_shown`; totals in [`advantage2-mechanical.txt`](evidence/advantage2-mechanical.txt), `named_shown`).
 
 ### 4. No false alarms
 
@@ -75,7 +90,8 @@ These describe the skill's behavior, not a comparison: the pre-registered advant
 
 - [`evidence/d18/`](evidence/d18/): `grade.json` and `format.json` of the 15 onboarding runs.
 - [`evidence/takeover/`](evidence/takeover/): `adv-grade.json` of all 54 takeover runs. Besides the skill's 18,
-  it holds the other arms of the same test (`without`, `prime`, `ostikwhy`); nothing here compares them.
+  it holds the same test run without the skill (`without`) and with two other approaches (`prime`, `ostikwhy`);
+  nothing here compares them.
 - [`evidence/reading-opus-a2.json`](evidence/reading-opus-a2.json), [`reading-opus-b2.json`](evidence/reading-opus-b2.json):
   two independent readings of the takeover runs; [`reading-opus-tiebreak2.json`](evidence/reading-opus-tiebreak2.json)
   settles where they differ.
@@ -90,9 +106,10 @@ are shortened to `<lab>/runs/<test>/<run>`.
 
 - [`grounds/`](grounds/): the three built test grounds (`build.py`, `seed.py`) and
   [`grounds/open-source/clone.py`](grounds/open-source/clone.py), which clones Redocly CLI at the pinned commit.
-- [`keys/`](keys/): the answer keys and the plant keys.
+- [`keys/`](keys/): the answer keys, the plant keys, and the plant files (`*.plant.json`) that `run.py --plant` applies.
 - [`harness/`](harness/): `run.py` (one test run), the graders' format check and the report.
-  Every script prints its usage with `--help`. Tests: `python3 -m pytest -q harness/tests/`.
+  The scripts print their usage with `--help` (`isolation.py`, `format_check_v1.py` and `grounds/test_guard.py`
+  are modules). Tests: `python3 -m pytest -q harness/tests/`.
 
 ## License
 

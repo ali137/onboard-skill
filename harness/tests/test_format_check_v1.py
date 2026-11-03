@@ -2,7 +2,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# phase 13's checker; its example is read from commit 5e1595f, so this needs the repo's history
+# phase 13's checker; its example is read from commit e5894fb, so this needs the repo's history
 import subprocess  # noqa: E402
 
 import format_check_v1 as fc  # noqa: E402
@@ -75,7 +75,7 @@ def test_the_phase_13_briefing():
     """The 12 sections of the briefing (settled decisions; every claim checked), in
     the skill's own example form; the old 10-section form now misses those two; a go given
     in the starting prompt ends the briefing instead of "Waiting for go."."""
-    text = subprocess.run(["git", "show", "5e1595f:onboard/references/join.md"], capture_output=True,
+    text = subprocess.run(["git", "show", "e5894fb:onboard/references/join.md"], capture_output=True,
                           text=True, check=True, cwd=os.path.dirname(fc.__file__)).stdout
     example = text.split("```\n## Briefing")[1].split("```")[0]
     assert fc.check_briefing("## Briefing" + example)["ok"]
