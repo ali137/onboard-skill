@@ -1,13 +1,62 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/banner-light.svg">
+    <img alt="onboard: a Claude Code skill that checks a project's records against disk and git before briefing you" src="assets/banner-light.svg" width="100%">
+  </picture>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue?style=flat"></a>
+  <a href="CHANGELOG.md"><img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-informational?style=flat"></a>
+  <a href="#what-was-measured"><img alt="runs: 15/15 at 8/8" src="https://img.shields.io/badge/runs-15%2F15%20at%208%2F8-brightgreen?style=flat"></a>
+  <a href="https://claude.com/claude-code"><img alt="Claude Code: skill/plugin" src="https://img.shields.io/badge/Claude%20Code-skill%2Fplugin-orange?style=flat"></a>
+</p>
+
 # onboard
 
 A [Claude Code](https://claude.com/claude-code) skill for a session that arrives in work already under way.
 It checks the project's claims against disk and git before trusting them, then briefs you.
 
+**A new session that checks the project's records before trusting them: in 15 of 15 test runs,
+onboard's briefing answered all 8 onboarding questions correctly and caught the false claim
+planted in the records.**
+
+| Bar | Target | Measured | Result |
+| --- | --- | --- | --- |
+| Onboarding questions + planted claim | 8 of 8, planted claim caught | [15/15 at 8/8](evidence/d18/) | PASS |
+| Briefing length | at most 40 lines | 3 of 15 over: [44](evidence/d18/bakery-team-with-1/format.json), [53](evidence/d18/pipeline-with-2/format.json), [67](evidence/d18/pipeline-with-1/format.json) | FAIL |
+| Takeover, in-flight work named | 9/9 | [8/9](evidence/advantage2-final.txt) | FAIL |
+| Takeover, false "tests pass" caught | 9/9 | [6/9](evidence/advantage2-final.txt) | FAIL |
+
+Details: [What was measured](#what-was-measured) and [What failed](#what-failed).
+
+## Install
+
+### Claude Code plugin
+
+```
+/plugin marketplace add ali137/onboard-skill
+/plugin install onboard@onboard-skill
+```
+
+On Claude Code 2.1.275+, one step: `/plugin install onboard --marketplace ali137/onboard-skill`.
+Installed as a plugin, the command is `/onboard:onboard`.
+
+### Manual copy
+
+Copy [`plugins/onboard/skills/onboard/`](plugins/onboard/skills/onboard/) to `~/.claude/skills/onboard/`, or to a
+project's `.claude/skills/onboard/`. The command stays `/onboard`.
+
+### Other agents
+
+Via the skills CLI: `npx skills add ali137/onboard-skill`.
+
+## Usage
+
 - `/onboard` (join): read the records, check each claim, and brief.
 - `/onboard brief <role> <task>`: write a newcomer's starting prompt before delegating work.
 - `/onboard record`: write down a verified, non-obvious fix for the next session.
-
-Install: copy [`onboard/`](onboard/) to `~/.claude/skills/onboard/`, or to a project's `.claude/skills/onboard/`.
 
 ## What it writes
 
@@ -29,12 +78,9 @@ Install: copy [`onboard/`](onboard/) to `~/.claude/skills/onboard/`, or to a pro
 
 ## What was measured
 
-**A new session that checks the project's records before trusting them: in 15 of 15 test runs,
-onboard's briefing answered all 8 onboarding questions correctly and caught the false claim
-planted in the records.**
-
-Measured with Claude Code 2.1.316 and the skill at commit `8a7f2e2`. The run records call that commit `2e641cc`,
-its hash before this repository's history was rewritten for publishing. The `onboard/` folder is the same in both.
+Measured with Claude Code 2.1.316 and the skill at commit `8a7f2e2`, when it lived at `onboard/`.
+The run records call that commit `2e641cc`, its hash before this repository's history was rewritten
+for publishing. The skill has since moved to `plugins/onboard/skills/onboard/` unchanged.
 
 ### 1. Accurate briefings
 
@@ -113,6 +159,13 @@ are shortened to `<lab>/runs/<test>/<run>`.
 - [`harness/`](harness/): `run.py` (one test run), the graders' format check and the report.
   The scripts print their usage with `--help` (`isolation.py`, `format_check_v1.py` and `grounds/test_guard.py`
   are modules). Tests: `python3 -m pytest -q harness/tests/`.
+  `run.py --skill` still defaults to `onboard/`, where the skill lived when it was measured; pass
+  `--skill plugins/onboard/skills/onboard` to use the skill at its current path.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). If a result here looks wrong, open a
+[Report a wrong result](https://github.com/ali137/onboard-skill/issues/new?template=wrong-result.yml) issue.
 
 ## License
 

@@ -1,0 +1,23 @@
+{
+  "name": "onboard-skill",
+  "owner": {
+    "name": "ali abbasi",
+    "url": "https://github.com/ali137"
+  },
+  "metadata": {
+    "description": "The onboard skill: a new session checks a project's records against disk and git before trusting them, then briefs.",
+    "version": "1.0.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "onboard",
+      "source": "./plugins/onboard",
+      "description": "Check a project's claims against disk and git before taking over work in flight.",
+      "version": "1.0.0",
+      "skills": [
+        "./skills/onboard"
+      ]
+    }
+  ]
+}

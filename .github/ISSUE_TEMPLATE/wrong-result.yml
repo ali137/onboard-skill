@@ -1,0 +1,26 @@
+name: Report a wrong result
+description: A number or sentence in the README does not match the published evidence.
+title: "Wrong result: "
+labels: ["wrong-result"]
+body:
+  - type: textarea
+    id: sentence
+    attributes:
+      label: Which README sentence
+      description: Quote it.
+    validations:
+      required: true
+  - type: input
+    id: file
+    attributes:
+      label: Which evidence file
+      placeholder: evidence/d18/bakery-with-1/grade.json
+    validations:
+      required: true
+  - type: textarea
+    id: recomputed
+    attributes:
+      label: What you recomputed, and how
+      description: The value you got and the command or steps that produced it.
+    validations:
+      required: true

@@ -76,7 +76,7 @@ def test_the_compact_briefing():
     """The compact briefing (phase 18) in the skill's own example form passes; phase 13's
     12-section form fails it (format_check_v1.py reads that one); a go given in the
     starting prompt ends the briefing instead of "Waiting for go."."""
-    text = open(os.path.join(os.path.dirname(fc.__file__), "..", "onboard/references/join.md")).read()
+    text = open(os.path.join(os.path.dirname(fc.__file__), "..", "plugins/onboard/skills/onboard/references/join.md")).read()
     example = text.split("```\n## Briefing")[1].split("```")[0]
     r = fc.check_briefing("## Briefing" + example)
     assert r["ok"] and r["sections_found"] == 8, r

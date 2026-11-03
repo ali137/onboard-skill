@@ -1,0 +1,22 @@
+{
+  "name": "onboard",
+  "version": "1.0.0",
+  "description": "Check a project's claims against disk and git before taking over work in flight. Use on arrival in ongoing project or team work (a new session, a teammate, another model), when taking over a phase, when a starting prompt says \"run onboard first\", or when other live sessions work on the same project; \"brief <role> <task>\" to write a newcomer's starting prompt before delegating work; \"record\" (run it yourself) after a verified, non-obvious fix.",
+  "author": {
+    "name": "ali abbasi",
+    "url": "https://github.com/ali137"
+  },
+  "homepage": "https://github.com/ali137/onboard-skill",
+  "repository": "https://github.com/ali137/onboard-skill",
+  "license": "MIT",
+  "keywords": [
+    "skill",
+    "onboarding",
+    "handoff",
+    "session-handoff",
+    "agent-teams",
+    "multi-agent",
+    "verification",
+    "git"
+  ]
+}

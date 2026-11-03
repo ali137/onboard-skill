@@ -547,8 +547,8 @@ def main():
     ap.add_argument("--src", required=True, help="the snapshot to copy (only read)")
     ap.add_argument("--out", required=True, help="the new run folder (must not exist)")
     ap.add_argument("--prompt", required=True, help="the prompt text, or @file")
-    ap.add_argument("--skill", default=os.path.join(os.path.dirname(HARNESS), "onboard"),
-                    help="skill folder copied into the with arm (default: ../onboard)")
+    ap.add_argument("--skill", default=os.path.join(os.path.dirname(HARNESS), "plugins", "onboard", "skills", "onboard"),
+                    help="skill folder copied into the with arm (default: ../plugins/onboard/skills/onboard)")
     ap.add_argument("--plant", help="planted-claim JSON, applied to the copy only")
     ap.add_argument("--prepare", help="a command run on the copy, its path added last (e.g. seed a bug)")
     ap.add_argument("--watch", action="append", default=[], metavar="TEXT",

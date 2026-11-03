@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="onboard: Check the records before you trust them.">
+  <title>onboard: Check the records before you trust them.</title>
+  <rect width="1280" height="320" rx="12" fill="#0d1117"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <text x="96" y="142" font-size="112" font-weight="600" letter-spacing="-4" fill="#f0f3f6">onboard</text>
+    <text x="100" y="196" font-size="30" font-weight="400" letter-spacing="-0.3" fill="#9198a1">Check the records before you trust them.</text>
+    <rect x="100" y="226" width="40" height="1.5" fill="#30363d"/>
+    <g transform="translate(100 244)">
+      <circle cx="9" cy="9" r="9" fill="#3fb950"/>
+      <path d="M5 9.3 L7.9 12.1 L13.2 6.4" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="130" y="258.5" font-size="17" font-weight="500" letter-spacing="0.1" fill="#b7bdc6">15 of 15 test runs: 8 of 8 onboarding questions, planted false claim caught</text>
+  </g>
+</svg>
