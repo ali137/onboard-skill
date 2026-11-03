@@ -1,0 +1,13 @@
+{
+  "kind": "briefing",
+  "sections_found": 8,
+  "missing_sections": [],
+  "out_of_order": [],
+  "empty_sections": [],
+  "missing_clauses": [],
+  "briefing_lines": 23,
+  "under_line_limit": true,
+  "waiting_for_go": true,
+  "ok": true,
+  "file": "lab/runs/p18-d18c/redocly-with-2/result.md"
+}

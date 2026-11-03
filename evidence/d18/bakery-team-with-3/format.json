@@ -1,0 +1,15 @@
+{
+  "kind": "briefing",
+  "sections_found": 7,
+  "missing_sections": [
+    "Drift"
+  ],
+  "out_of_order": [],
+  "empty_sections": [],
+  "missing_clauses": [],
+  "briefing_lines": 20,
+  "under_line_limit": true,
+  "waiting_for_go": true,
+  "ok": false,
+  "file": "lab/runs/p18-d18c/bakery-team-with-3/result.md"
+}

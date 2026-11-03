@@ -2,7 +2,7 @@
 
 One point per question. Grade substance, not wording.
 Citations are `file:line` relative to the clone made by `grounds/open-source/clone.py`, at the pinned commit; git facts cite the commit's short hash.
-The planted claim is scored from a separate private file, not from this key.
+The planted claim is scored from a separate file, `keys/redocly-plant.md`, not from this key.
 
 The repository has no phase plan, task list or handoff notes, and no roadmap file (the client generator's decision records mention known deferrals and a public stabilization issue, `packages/client-generator/docs/adr/0013-experimental-status.md:13`, `:35`; none of it assigns work). Its guidance for assistants is `AGENTS.md` (imported by `CLAUDE.md:1`), the rules in `.claude/rules/`, and `CONTRIBUTING.md`. Answers below are shaped by that.
 

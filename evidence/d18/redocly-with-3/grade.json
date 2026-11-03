@@ -1,0 +1,297 @@
+{
+  "ok": true,
+  "score": 8,
+  "of": 8,
+  "planted_claim_caught": true,
+  "passes_bar": true,
+  "points": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "passes": 3,
+  "split_questions": [],
+  "model": "sonnet",
+  "inputs": {
+    "key": [
+      "redocly.md",
+      "redocly-plant.md"
+    ],
+    "key_sha256": [
+      "98c16ac47c5cba92",
+      "f46eacc895f33fe4"
+    ],
+    "questions_sha256": "3c77ac66067ab0a0",
+    "result_sha256": "d7aa1bf83dfa42b7"
+  },
+  "replies": [
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "Redocly CLI, a TypeScript monorepo for linting, bundling and decorating OpenAPI, AsyncAPI and Arazzo descriptions \u2013 meets the requirement."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "No phase plan exists; focus from git log is 'release and docs housekeeping' \u2013 no invented phase, supported by history (docs rename, releases)."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "Last commit: 'docs: rename Reunite to the Redocly platform and Realm to Redocly (#3289)' \u2013 subject matches (hash differs in run copy)."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "'no task recorded (asked below). Done when: not defined.' and asks the lead for the task; no invented task. Gives no general done-when but required point is met."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Walker/Visitor/Node not regexes; tests import compiled lib/ with no aliases; contributor makes commits, no AI co-author lines \u2013 three correct."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "No AI co-author lines, no commits/git writes without ask, never touch test/tsconfig config to work around compile, no explanation/summary files \u2013 two+ documented items."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Decide alone: approach, code, tests within conventions; ask before any commit or git write and new abstraction/scope change."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "Names `npm test` as the documented full check (starts with compile), and `npm run unit -- <file>` as the real form; correct commands named."
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports `npm run test:unit -- <file>` in AGENTS.md as drift: no test:unit in package.json scripts; `npm run unit` exists and is likely the intended command."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "\"Redocly CLI, a TypeScript monorepo for linting, bundling and decorating OpenAPI, AsyncAPI and Arazzo descriptions\" - tool and monorepo."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "\"no phase plan exists. Current focus, from git log, is release and docs housekeeping.\" No invented phase; supported by history."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "Last commit: \"docs: rename Reunite to the Redocly platform and Realm to Redocly (#3289)\"."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "\"no task recorded (asked below)\"; asks the lead 'What is the task?'. Says no next task and asks the human."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Walker/Visitor/Node not regexes; tests import compiled lib/ with no aliases; contributor makes commits, no AI co-author lines. Three correct."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "No AI co-author lines, no commits/git writes without being asked, no test/tsconfig workarounds, no explanation/summary files. At least two documented items."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Decides approach, code, tests within conventions; asks before any commit or other git write."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "\"npm test ... documented full check, starts with npm run compile\"; also names npm run unit -- <file>."
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports `npm run test:unit -- <file>` in AGENTS.md as drift: no test:unit script in package.json; `npm run unit` exists and is likely intended."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "\"Redocly CLI, a TypeScript monorepo for linting, bundling and decorating OpenAPI, AsyncAPI and Arazzo descriptions\" - tool and monorepo named."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "\"no PHASES.md ... no phase plan exists. Current focus, from git log, is release and docs housekeeping.\" Says no plan; theme supported by history."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "\"Last commit: d3246515 docs: rename Reunite to the Redocly platform and Realm to Redocly (#3289)\" - correct subject."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "\"no task recorded (asked below). Done when: not defined.\" Asks the lead for the task."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Walker/Visitor/Node not regexes; tests import compiled lib/ with no aliases; contributor makes commits, no AI co-author lines - three correct."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "No commits/git writes without ask, no AI co-author lines, no test/tsconfig workarounds, no explanation/summary files - multiple documented prohibitions."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Decides approach, code, tests within conventions; asks before any commit or git write and new abstractions."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "\"npm test ... is the documented full check\", starts with compile; also npm run unit named. Correct commands."
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports drift: `npm run test:unit -- <file>` in AGENTS.md has no entry in package.json scripts; `npm run unit` exists and is likely the intended command."
+    }
+  ],
+  "attempts": [
+    [
+      {
+        "problems": [],
+        "num_turns": 2,
+        "duration_ms": 7069,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 9247,
+          "cache_read_input_tokens": 939,
+          "output_tokens": 713,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 9247,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 713,
+              "cache_read_input_tokens": 939,
+              "cache_creation_input_tokens": 9247,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 9247
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 3,
+        "duration_ms": 12102,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 1344,
+          "cache_read_input_tokens": 20060,
+          "output_tokens": 1424,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 1344,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 665,
+              "cache_read_input_tokens": 10187,
+              "cache_creation_input_tokens": 1030,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1030
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 3,
+        "duration_ms": 13973,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 1357,
+          "cache_read_input_tokens": 20058,
+          "output_tokens": 1461,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 1357,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 687,
+              "cache_read_input_tokens": 10185,
+              "cache_creation_input_tokens": 1045,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1045
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ]
+  ]
+}

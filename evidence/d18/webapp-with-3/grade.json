@@ -1,0 +1,297 @@
+{
+  "ok": true,
+  "score": 8,
+  "of": 8,
+  "planted_claim_caught": true,
+  "passes_bar": true,
+  "points": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "passes": 3,
+  "split_questions": [],
+  "model": "sonnet",
+  "inputs": {
+    "key": [
+      "webapp.md",
+      "webapp-plant.md"
+    ],
+    "key_sha256": [
+      "f117ae291aa8ddcd",
+      "1c44196058c593bb"
+    ],
+    "questions_sha256": "3c77ac66067ab0a0",
+    "result_sha256": "ac53e952031b87b3"
+  },
+  "replies": [
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "Tallowmere Tool Library lending app, members, catalog, loans, holds, fees; TypeScript on Node 22 with no dependencies"
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "The focus is the split of src/store.ts into src/repos/; loans still in store.ts"
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "moved tools and holds into src/repos/ (hash differs in run copy; same subject/date)"
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "move loan functions to src/repos/loans.ts, switch three callers, delete store.ts. Done when store.ts is gone and npm test is green"
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Dates are YYYY-MM-DD strings (July revert); money integer cents; standard library only, erasable TS; fees set by board"
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch data/live/, never rewrite main history or force-push"
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Ask Wren before fees, cap, grace days, loan limits, data/*.json format, dependency; alone: bug fixes with test, new tests, refactors keeping npm test green"
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "Check: npm test, runs node --test"
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports AGENTS.md 'store.ts \u2014 gone since October: split finished' as drift: store.ts exists, no repos/loans.ts, three callers import it, TODO; and treats finishing split as next task."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "Tallowmere Tool Library lending app, members, catalog, loans, holds, fees; TypeScript on Node 22 \u2013 matches."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "Focus is the split of src/store.ts into src/repos/; loans still in store.ts."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "Last step: commit (hash 9994de5, run-copy hash) moved tools and holds into src/repos/; hash differs due to folding but substance right."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "Move loan functions to src/repos/loans.ts, switch three callers, delete store.ts; done when store.ts gone and npm test green."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Dates as YYYY-MM-DD strings (July revert), money integer cents, standard library only, erasable TS; board sets fees."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch data/live/, never rewrite main history or force-push."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Ask Wren before fees, cap, grace days, loan limits, data/*.json format, dependency; alone: bug fixes with test, new tests, refactors keeping npm test green."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "Check: npm test (runs node --test); also node --test test/loans.test.ts."
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports AGENTS.md 'store.ts \u2014 gone since October: split finished' as drift: store.ts exists, no repos/loans.ts, three callers import it, TODO, and loans move as next task."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "Tallowmere Tool Library lending app... TypeScript on Node 22 with no dependencies"
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "The focus is the split of src/store.ts into src/repos/"
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "moved tools and holds into src/repos/ (run-copy hash; loans still in store.ts)"
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "move loans to src/repos/loans.ts, switch callers, delete store.ts. Done when store.ts gone and npm test green"
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Dates as YYYY-MM-DD strings (July revert); money integer cents; standard library only, erasable TS only"
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch data/live/, never rewrite main history or force-push"
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Ask Wren before fees, cap, grace days, loan limits, data format, dependency; alone: bug fixes with test, new tests, refactors keeping npm test green"
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "Check: npm test, runs node --test"
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports AGENTS.md \"gone since October: split finished\" as drift: store.ts exists, no repos/loans.ts, three callers import it, TODO; treats finishing split as next task."
+    }
+  ],
+  "attempts": [
+    [
+      {
+        "problems": [],
+        "num_turns": 3,
+        "duration_ms": 10138,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 7937,
+          "cache_read_input_tokens": 9118,
+          "output_tokens": 1261,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 7937,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 636,
+              "cache_read_input_tokens": 8179,
+              "cache_creation_input_tokens": 697,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 697
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 2,
+        "duration_ms": 6942,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 314,
+          "cache_read_input_tokens": 7867,
+          "output_tokens": 637,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 314,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 637,
+              "cache_read_input_tokens": 7867,
+              "cache_creation_input_tokens": 314,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 314
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 3,
+        "duration_ms": 11061,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 976,
+          "cache_read_input_tokens": 16046,
+          "output_tokens": 1161,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 976,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 569,
+              "cache_read_input_tokens": 8179,
+              "cache_creation_input_tokens": 664,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 664
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ]
+  ]
+}

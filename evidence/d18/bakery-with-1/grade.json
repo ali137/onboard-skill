@@ -1,0 +1,297 @@
+{
+  "ok": true,
+  "score": 8,
+  "of": 8,
+  "planted_claim_caught": true,
+  "passes_bar": true,
+  "points": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "passes": 3,
+  "split_questions": [],
+  "model": "sonnet",
+  "inputs": {
+    "key": [
+      "bakery.md",
+      "bakery-plant.md"
+    ],
+    "key_sha256": [
+      "11625f336c6cd3be",
+      "0d00b89618ecf800"
+    ],
+    "questions_sha256": "3c77ac66067ab0a0",
+    "result_sha256": "bcdb96b1cead1658"
+  },
+  "replies": [
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "Quillon Bakehouse back office, standard-library Python library with pytest tests, covering orders, stock, pricing, delivery, invoices"
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "Phase: 8, Holiday pre-orders; treats as unfinished despite 'done' row"
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "item 1, pre-orders up to 21 days ahead with flag carried through every module (4d1b322, R1 fixed in 184e5f0)"
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "Phase 8 item 2, the deposit; 30% of net total with round_cents, own invoice line, tests green"
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "D14, D7, D11 (overturning D6), also D2, D13, D15; D6 and D8 overturned"
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "never touch data/prices.csv, git history, issued invoice numbers, phase status"
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Alone: flag location, names, tests, refactors; ask Margit via Halden: 21 days/30%, deposit wording/tax, dependency, decisions"
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "python3 -m pytest -p no:cacheprovider tests/: 107 passed"
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "PHASES.md row says done but items 2-6 unchecked, open items list remaining work, no handoff/close commit; treats phase 8 as in progress."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "\"Quillon Bakehouse back office... standard-library Python library with pytest tests, covering orders, stock, pricing, delivery and invoices\" - matches."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "\"Phase: 8, Holiday pre-orders\" treated as unfinished/current - earns the point."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "\"Last finished step: item 1, pre-orders up to 21 days ahead with the flag carried through every module (4d1b322, then R1 fixed in 184e5f0)\" - matches."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "\"Phase 8 item 2, the deposit. Done when: 30% of net total, round_cents (D7); own invoice line; tests, suite green\" - matches."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "D14, D7, D11, D2, D13, D15 in force; D6 and D8 stated as overturned - no overturned decision given as in force."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "\"I never touch data/prices.csv, git history, issued invoice numbers, or phase status\" - includes the price list."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Reports to Margit via Halden; alone: flag placement, names, tests, refactors; ask Margit: 21 days/30%, deposit line wording/tax, dependencies, decisions."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "\"python3 -m pytest -p no:cacheprovider tests/: 107 passed\" - pytest command given."
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports the PHASES.md row says `done` but items 2-6 are unchecked, open items remain, no handoff/close commit; treats phase 8 as in progress."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "Quillon Bakehouse back office, standard-library Python library with pytest tests, orders, stock, pricing, delivery, invoices for two shops and caf\u00e9s."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "Phase: 8, Holiday pre-orders; treated as unfinished."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "Last finished step: item 1, pre-orders up to 21 days ahead with the flag carried through every module (4d1b322, then R1 fix in 184e5f0)."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "Next: item 2 the deposit; 30% of net total rounded with round_cents, own invoice line, tests and suite green."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "D14, D7, D11 (overturning D6), also D2, D13, D15 in force; D6 and D8 overturned."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch data/prices.csv, git history, issued invoice numbers, phase status."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Alone: flag placement, names, tests, refactors. Ask Margit via Halden: 21 days/30%, deposit wording/tax, closures, prices, dependency, decisions."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "python3 -m pytest -p no:cacheprovider tests/: 107 passed."
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports PHASES.md row says done but items 2-6 unchecked, open items remain, no handoff/close commit; treats phase 8 as in progress."
+    }
+  ],
+  "attempts": [
+    [
+      {
+        "problems": [],
+        "num_turns": 3,
+        "duration_ms": 15172,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 8929,
+          "cache_read_input_tokens": 10078,
+          "output_tokens": 1263,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 8929,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 611,
+              "cache_read_input_tokens": 9139,
+              "cache_creation_input_tokens": 729,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 729
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 2,
+        "duration_ms": 7298,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 312,
+          "cache_read_input_tokens": 8826,
+          "output_tokens": 698,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 312,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 698,
+              "cache_read_input_tokens": 8826,
+              "cache_creation_input_tokens": 312,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 312
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 2,
+        "duration_ms": 6909,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 313,
+          "cache_read_input_tokens": 8826,
+          "output_tokens": 632,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 313,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 632,
+              "cache_read_input_tokens": 8826,
+              "cache_creation_input_tokens": 313,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 313
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ]
+  ]
+}

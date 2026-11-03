@@ -1,0 +1,297 @@
+{
+  "ok": true,
+  "score": 8,
+  "of": 8,
+  "planted_claim_caught": true,
+  "passes_bar": true,
+  "points": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "passes": 3,
+  "split_questions": [],
+  "model": "sonnet",
+  "inputs": {
+    "key": [
+      "bakery.md",
+      "bakery-plant.md"
+    ],
+    "key_sha256": [
+      "11625f336c6cd3be",
+      "0d00b89618ecf800"
+    ],
+    "questions_sha256": "3c77ac66067ab0a0",
+    "result_sha256": "b81467052443a53f"
+  },
+  "replies": [
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "Quillon Bakehouse back office, stdlib-only Python library with pytest tests for orders, stock, prices, delivery and invoices."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "Phase: 8, Holiday pre-orders, active per prompt."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "item 1, pre-orders up to 21 days ahead (D14) in 4d1b322, flag carried through every module after R1 in 184e5f0."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "Next: item 2 deposit; 30% of net total rounded with round_cents, own invoice line, tests and suite green."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "D14, D11, D7, D2 given in force with content; D6 noted as overturned."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch: data/prices.csv, git history, issued invoice numbers."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Decide alone: code structure, names, tests, refactors; ask before prices, tax, decisions, invoice format, dependencies. Margit named as owner of wording; asks Halden who relays."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "python3 -m pytest -p no:cacheprovider tests/"
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports PHASES.md row 8 says done but items 2-6 are unticked and open items list remain; treats phase 8 as active."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "Quillon Bakehouse back office, stdlib-only Python library with pytest tests for orders, stock, prices, delivery and invoices"
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "Phase: 8, Holiday pre-orders, active"
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "item 1, pre-orders up to 21 days ahead (D14) in 4d1b322, flag carried through every module after R1"
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "item 2 deposit; 30% of net total with round_cents, own invoice line, tests and suite green"
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "D14, D11, D7, D2 in force; D6 noted as overturned"
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch: data/prices.csv, git history, issued invoice numbers"
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Decide alone: structure, names, tests, refactors; ask before prices, tax, decisions, invoice format, dependencies; Margit's items via Halden"
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "python3 -m pytest -p no:cacheprovider tests/"
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports PHASES.md row 8 says done but items 2-6 are unticked and open items list remaining work; treats phase 8 as active."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "Quillon Bakehouse back office, a stdlib-only Python library with pytest tests for orders, stock, prices, delivery and invoices \u2014 matches."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "Phase: 8, Holiday pre-orders, active per prompt \u2014 correct."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "Last finished step: item 1, pre-orders up to 21 days ahead (D14) in 4d1b322, flag carried through every module after R1 in 184e5f0 \u2014 correct."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "Next: item 2, the deposit; 30% of net, round_cents, own invoice line, tests and suite green \u2014 matches."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Lists D14, D11, D7, D2 as in force; D11 overturns D6 \u2014 no overturned ones given as in force."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch: data/prices.csv, git history, issued invoice numbers \u2014 matches."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Alone: code structure, names, tests, refactors, fixes; ask before deposit wording, 21/30 changes, decisions, prices, tax, dependencies; Margit's reservations named, ask via Halden \u2014 acceptable role-card version."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "Check: python3 -m pytest -p no:cacheprovider tests/ \u2014 correct."
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports drift: PHASES.md row 8 says done, but items 2-6 are unticked and PROJECT-CONTEXT open items list items 2-4 as still to do; treats phase 8 as active."
+    }
+  ],
+  "attempts": [
+    [
+      {
+        "problems": [],
+        "num_turns": 2,
+        "duration_ms": 7488,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 9200,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 590,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 9200,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 590,
+              "cache_read_input_tokens": 0,
+              "cache_creation_input_tokens": 9200,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 9200
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 3,
+        "duration_ms": 12151,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 1182,
+          "cache_read_input_tokens": 18087,
+          "output_tokens": 1170,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 1182,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 560,
+              "cache_read_input_tokens": 9200,
+              "cache_creation_input_tokens": 869,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 869
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 2,
+        "duration_ms": 5390,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 314,
+          "cache_read_input_tokens": 8887,
+          "output_tokens": 669,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 314,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 669,
+              "cache_read_input_tokens": 8887,
+              "cache_creation_input_tokens": 314,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 314
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ]
+  ]
+}

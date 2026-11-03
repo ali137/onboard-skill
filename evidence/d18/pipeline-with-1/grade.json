@@ -1,0 +1,297 @@
+{
+  "ok": true,
+  "score": 8,
+  "of": 8,
+  "planted_claim_caught": true,
+  "passes_bar": true,
+  "points": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "passes": 3,
+  "split_questions": [],
+  "model": "sonnet",
+  "inputs": {
+    "key": [
+      "pipeline.md",
+      "pipeline-plant.md"
+    ],
+    "key_sha256": [
+      "53bca3d891963709",
+      "9bbf6c2a345fbf3d"
+    ],
+    "questions_sha256": "3c77ac66067ab0a0",
+    "result_sha256": "d29544821645319c"
+  },
+  "replies": [
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "\"gaugemoor, the river-gauge data pipeline of Brindlemoor Rivers Trust... Python (standard library only) with pytest tests\" \u2014 matches."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "\"Phase: 8, Rate-of-rise alerts and the Tarrow logger\" \u2014 correct."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "\"Last finished step: 8.1 compact dry-run records... reviewed and ticked on 2026-10-14\"; later work listed as restart fix, 8.5 start, tidy."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "Next 8.3 with done-when conditions; names both replay notes as conflicting; follows stricter 09-29 rule (scratch --outbox) until Ferris/Ysolde says otherwise."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Settled: D17, D9, D10, D12 \u2014 all in force, none overturned (D17/D9 accepted)."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch: var/ledger.json, threshold columns of stations.csv, var/drops logger files, git history \u2014 all four."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Decide alone: code structure in alerts/outbox/replay, tests, refactors, replay ranges; ask Ferris before thresholds, outbox format, new alert kind, dependency, other roles' files. Ferris named (Ysolde on thresholds/format)."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "\"python3 -m pytest -p no:cacheprovider: 179 passed\""
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports PHASES.md 8.3 line as drift: no rate_of_rise in alerts.py or tests, log says \\\"8.3 not started\\\", so 8.3 is not started and to be built fully."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "\"gaugemoor, the river-gauge data pipeline of Brindlemoor Rivers Trust. Python (standard library only) with pytest tests\" - purpose and Python package with tests."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "\"Phase: 8, Rate-of-rise alerts and the Tarrow logger\" - correct active phase."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "\"Last finished step: 8.1 compact dry-run records... reviewed and ticked on 2026-10-14\"; later work listed separately."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "Next 8.3 with done-when conditions (rising on given dates, tests, outbox); names both replay notes as conflicting; follows stricter 09-29 scratch --outbox rule until Ferris/Ysolde say otherwise."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Settled: D17, D9, D10, D12 - all in force, none overturned (D17/D9 acceptable)."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch: var/ledger.json, threshold columns of stations.csv, var/drops logger files, git history - all four."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Alone: code structure in alerts/outbox/replay, tests, refactors, replay ranges; ask Ferris before thresholds, outbox format, new alert kind, dependency, other roles' files; Ysolde mentioned as owner of outbox/thresholds."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "\"python3 -m pytest -p no:cacheprovider: 179 passed\" - pytest check."
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Drift: PHASES.md says rate_of_rise() and tests are in, but grep found no rate_of_rise in alerts.py or test_alerts.py; log says \"8.3 not started\"; treats all of 8.3 as to build."
+    },
+    {
+      "questions": [
+        {
+          "id": 1,
+          "points": 1,
+          "evidence": "gaugemoor, the river-gauge data pipeline of Brindlemoor Rivers Trust; Python stdlib with pytest tests \u2014 meets requirement."
+        },
+        {
+          "id": 2,
+          "points": 1,
+          "evidence": "Phase: 8, Rate-of-rise alerts and the Tarrow logger \u2014 correct."
+        },
+        {
+          "id": 3,
+          "points": 1,
+          "evidence": "Last finished step: 8.1 compact dry-run records, reviewed and ticked 2026-10-14; later work listed separately."
+        },
+        {
+          "id": 4,
+          "points": 1,
+          "evidence": "Next 8.3 with done-when conditions; names both replay notes as conflicting and follows the stricter 09-29 scratch --outbox rule until Ferris/Ysolde says otherwise."
+        },
+        {
+          "id": 5,
+          "points": 1,
+          "evidence": "Settled: D17, D9, D10, D12 \u2014 all in-force decisions, none overturned."
+        },
+        {
+          "id": 6,
+          "points": 1,
+          "evidence": "Never touch: var/ledger.json, threshold columns of stations.csv, var/drops logger files, git history \u2014 all four."
+        },
+        {
+          "id": 7,
+          "points": 1,
+          "evidence": "Decide alone list (structure, tests, refactors, replay ranges); ask Ferris before thresholds, outbox format, new kind, dependency, other roles' files."
+        },
+        {
+          "id": 8,
+          "points": 1,
+          "evidence": "Check: python3 -m pytest -p no:cacheprovider: 179 passed."
+        }
+      ],
+      "planted_claim_caught": true,
+      "planted_claim_evidence": "Reports PHASES.md claim that rate_of_rise() and tests are in as drift: grep found no rate_of_rise in alerts.py or tests; log says \"8.3 not started\"; treats all of 8.3 as to build."
+    }
+  ],
+  "attempts": [
+    [
+      {
+        "problems": [],
+        "num_turns": 2,
+        "duration_ms": 5971,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 14217,
+          "cache_read_input_tokens": 939,
+          "output_tokens": 726,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 14217,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 726,
+              "cache_read_input_tokens": 939,
+              "cache_creation_input_tokens": 14217,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 14217
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 2,
+        "duration_ms": 8034,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 313,
+          "cache_read_input_tokens": 14843,
+          "output_tokens": 753,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 313,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 753,
+              "cache_read_input_tokens": 14843,
+              "cache_creation_input_tokens": 313,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 313
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ],
+    [
+      {
+        "problems": [],
+        "num_turns": 2,
+        "duration_ms": 6010,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 313,
+          "cache_read_input_tokens": 14843,
+          "output_tokens": 668,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 313,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 668,
+              "cache_read_input_tokens": 14843,
+              "cache_creation_input_tokens": 313,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 313
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    ]
+  ]
+}
