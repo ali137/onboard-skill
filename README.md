@@ -41,7 +41,7 @@ Details: [What was measured](#what-was-measured) and [What failed](#what-failed)
 /plugin install onboard@onboard-skill
 ```
 
-On Claude Code 2.1.275+, one step: `/plugin install onboard --marketplace ali137/onboard-skill`.
+One step: `/plugin install onboard --marketplace ali137/onboard-skill` (from a shell: `claude plugin install onboard --marketplace ali137/onboard-skill`).
 Installed as a plugin, the command is `/onboard:onboard`.
 
 ### Manual copy
@@ -51,7 +51,7 @@ project's `.claude/skills/onboard/`. The command stays `/onboard`.
 
 ### Other agents
 
-Via the skills CLI: `npx skills add ali137/onboard-skill`.
+Via the skills CLI: `npx skills add ali137/onboard-skill`. Not tested by us: the skill is tested on Claude Code only.
 
 ## Usage
 
@@ -141,7 +141,7 @@ These describe the skill's behavior, not a comparison: the pre-registered advant
 - [`evidence/d18/`](evidence/d18/): `grade.json` and `format.json` of the 15 onboarding runs.
 - [`evidence/takeover/`](evidence/takeover/): `adv-grade.json` of all 54 takeover runs. Besides the skill's 18,
   it holds the same test run without the skill (`without`) and with two other approaches (`prime`, `ostikwhy`);
-  nothing here compares them.
+  the README draws no comparison from them.
 - [`evidence/reading-opus-a2.json`](evidence/reading-opus-a2.json), [`reading-opus-b2.json`](evidence/reading-opus-b2.json):
   two independent readings of the takeover runs; [`reading-opus-tiebreak2.json`](evidence/reading-opus-tiebreak2.json)
   settles where they differ.
