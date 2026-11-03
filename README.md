@@ -159,8 +159,7 @@ are shortened to `<lab>/runs/<test>/<run>`.
 - [`harness/`](harness/): `run.py` (one test run), the graders' format check and the report.
   The scripts print their usage with `--help` (`isolation.py`, `format_check_v1.py` and `grounds/test_guard.py`
   are modules). Tests: `python3 -m pytest -q harness/tests/`.
-  `run.py --skill` still defaults to `onboard/`, where the skill lived when it was measured; pass
-  `--skill plugins/onboard/skills/onboard` to use the skill at its current path.
+  `run.py --skill` defaults to the skill at `plugins/onboard/skills/onboard/`.
 
 ## Contributing
 
