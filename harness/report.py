@@ -14,7 +14,7 @@ shown but not summed: they dominate and are cheap). Watch hits are split: a
 hit whose tool call names team/experience/, or a subagent's prompt holding a
 watch string (a hand-down), came through a note; any other is a leak (git
 history, changelog). Bug runs also show their git-history Bash calls and how
-many of those hit a watch string (the per-hit flag is in run.json from harness 63cbb8d on).
+many of those hit a watch string (the per-hit flag is in run.json from harness 22f3d49 on).
 
 Bars:
 - onboarding, per graded with-arm condition: every run has a sound
