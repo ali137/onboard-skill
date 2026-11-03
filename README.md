@@ -13,9 +13,12 @@ Install: copy [`onboard/`](onboard/) to `~/.claude/skills/onboard/`, or to a pro
 
 - Join and brief modes change nothing in the project, apart from what the project's own check writes when
   join re-runs it before the briefing.
-- From your "go" on, and in record mode, it appends to `team/SESSIONS.md` and `team/questions/` (creating
-  `team/` if needed) and never edits an entry.
-- Record mode writes one note under `team/experience/`. It starts on its own after a verified fix to a problem
+- While other live sessions work on the same project, from your "go" on and in record mode, it appends to
+  `team/SESSIONS.md` and `team/questions/` (creating `team/` if needed) and never edits an entry. Working alone,
+  it skips this, except that after go it appends an "unreachable" notice for each session `team/SESSIONS.md`
+  still counts as working that is no longer listed as live.
+- Record mode writes one note under `team/experience/` and adds a line for it to `team/experience/INDEX.md`
+  (created if missing). It starts on its own after a verified fix to a problem
   that was not obvious, without asking first.
 
 ## Where it applies
